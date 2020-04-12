@@ -1,5 +1,6 @@
 language: common-lisp
 sudo: false
+dist: bionic
 
 addons:
   apt:
@@ -21,7 +22,7 @@ branches:
     - "/^v\\d+(\\.\\d+)+$/"
 
 os:
-  - linux arch: arm64 dist: bionic
+  - linux
   - osx
 
 install:
