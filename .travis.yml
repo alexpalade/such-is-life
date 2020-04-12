@@ -21,7 +21,7 @@ branches:
     - "/^v\\d+(\\.\\d+)+$/"
 
 os:
-  - linux
+  - linux arch: arm64 dist: bionic
   - osx
 
 install:
