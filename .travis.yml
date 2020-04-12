@@ -6,7 +6,7 @@ addons:
     - zip
 env:
   global:
-  - GAMEKIT_SYSTEM_NAME: society-is-hard
+  - GAMEKIT_SYSTEM_NAME: sih
   - GAMEKIT_APPLICATION_PACKAGE: sih
   - GAMEKIT_APPLICATION_MAIN_CLASS: game
   - PATH: "~/bin/:$PATH"
