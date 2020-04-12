@@ -11,4 +11,5 @@
 (defmethod gamekit:draw ((this sih))
   (gamekit:draw-text "Hello, world!" (gamekit:vec2 300 300)))
 
-(gamekit:start 'sih)
+(defmethod run ()
+  (gamekit:start 'sih))
