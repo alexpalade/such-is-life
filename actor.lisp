@@ -1,19 +1,16 @@
 (cl:in-package :sih)
 
 (defclass actor ()
-  ((pos :initform (vec2 100 100) :accessor pos)
-   (dest :initform (vec2 200 200) :accessor dest)))
-
-(defmethod tick ((this actor))
-  (gamekit:draw-text (write-to-string (len (subt (vec2 200 200) (pos this)))) (gamekit:vec2 300 400))
-  (setf (pos this) (add (pos this) (rotate-vec (vec2 1 1) (random 360)))))
-
-(defmethod new-dest ((this actor))
-  ())
+  ((dest :initform (vec2 200 200) :accessor dest)
+   (rest-time :initform (+ 0.5 (/ 1 (+ 0.1 (random 10)))) :accessor rest-time)
+   (row :initform nil :accessor row)
+   (col :initform nil :accessor col)
+   (last-move-time :initform (/ 1 (1+ (random 10))) :accessor last-move-time)))
 
 (defmethod render ((this actor))
-  (draw-circle (pos this)
-               20
-               :fill-paint *black*
-               :stroke-paint (vec4 1 0 0 0)
-               :thickness 2))
+  (with-pushed-canvas ()
+    (draw-circle (vec2 *cell-half* *cell-half*)
+                 20
+                 :fill-paint *black*
+                 :stroke-paint (vec4 1 0 0 0)
+                 :thickness 2)))

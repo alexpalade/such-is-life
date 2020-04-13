@@ -6,4 +6,8 @@
   :serial t
   :depends-on (trivial-gamekit)
   :components ((:file "package")
+               (:file "math")
+               (:file "grid")
+               (:file "actor")
+               (:file "policeman")
                (:file "main")))

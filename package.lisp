@@ -1,3 +1,3 @@
 (defpackage :sih
-  (:use :cl)
-  (:export #:run))
+  (:use :cl :trivial-gamekit)
+  (:export run))
