@@ -2,6 +2,9 @@
 
 (defvar *width* 800)
 (defvar *height* 600)
+
+(defvar *cursor-pos* (gamekit:vec2 0 0))
+
 (defparameter *padding-bottom* 20)
 (defparameter *grid-height* (- *height* (* 2 *padding-bottom*)))
 (defparameter *rows* 9)
@@ -31,7 +34,24 @@
   (spawn-actor this 'policeman)
   (spawn-actor this 'actor)
   (bind-button :escape :pressed #'gamekit:stop)
-  (bind-button :q :pressed #'gamekit:stop))
+  (bind-button :q :pressed #'gamekit:stop)
+
+  (bind-cursor (lambda (x y)
+                 "Save cursor position"
+                 (setf (gamekit:x *cursor-pos*) x
+                       (gamekit:y *cursor-pos*) y)))
+
+
+  (bind-button :mouse-left :pressed
+               (lambda ()
+                 (let* ((x-mouse (x *cursor-pos*))
+                        (y-mouse (y *cursor-pos*))
+                        (col (floor (/ (- x-mouse *padding-left*) *cell-size*)))
+                        (row (floor (/ (- y-mouse *padding-bottom*) *cell-size*))))
+                   (handle-click-cell this row col)))))
+
+(defmethod handle-click-cell ((this sih) row col)
+  (format t "~& ~A x ~A ~%" row col))
 
 (defmethod random-empty-cell ((this sih))
   (with-slots (cells) this
@@ -65,7 +85,7 @@
             (render (aref cells row col))))))))
 
 (defun draw-time ()
-    (draw-text (write-to-string (coerce (real-time-seconds) 'float)) (vec2 30 500)))
+  (draw-text (write-to-string (coerce (real-time-seconds) 'float)) (vec2 30 500)))
 
 (defun real-time-seconds ()
   "Return seconds since certain point of time"
@@ -81,13 +101,13 @@
 
 (defmethod get-move-cells ((this sih) actor)
   (let* ((result-cells '())
-        (row (row actor))
-        (col (col actor))
-        (try-cells (list
-                    (list (1- row) col)
-                    (list (1+ row) col)
-                    (list row (1+ col))
-                    (list row (1- col)))))
+         (row (row actor))
+         (col (col actor))
+         (try-cells (list
+                     (list (1- row) col)
+                     (list (1+ row) col)
+                     (list row (1+ col))
+                     (list row (1- col)))))
 
     (dolist (try-cell try-cells)
       (when (and
