@@ -3,11 +3,19 @@
 (defvar *width* 800)
 (defvar *height* 600)
 
+;; resouces
+(register-resource-package :keyword (asdf:system-relative-pathname :sih "assets/"))
+(define-image :person "person.png")
+(define-image :police "police.png")
+(define-image :killer "killer.png")
+(define-image :medic "medic.png")
+(define-sound :grab "grab.ogg")
+
 (defvar *cursor-pos* (gamekit:vec2 0 0))
 
 (defparameter *padding-bottom* 20)
 (defparameter *grid-height* (- *height* (* 2 *padding-bottom*)))
-(defparameter *rows* 9)
+(defparameter *rows* 10)
 (defparameter *cell-size* (/ *grid-height* *rows*))
 (defparameter *cell-half* (/ *cell-size* 2))
 (defparameter *cols* (floor (/ (- *width* (* 2 *padding-bottom*)) *cell-size*)))
@@ -16,11 +24,14 @@
 (defparameter *cols* (floor (/ *grid-width* *cell-size*)))
 (defparameter *once* nil)
 
+;; % padding between a cell and the image assets
+(defparameter *cell-padding* (* 0.1 *cell-size*))
+
 (defvar *black* (gamekit:vec4 0 0 0 1))
 
 (gamekit:defgame sih ()
   ((grid :initform (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*) :accessor grid)
-   (actors :initform '() :accessor actors)
+   (persons :initform '() :accessor persons)
    (cells :accessor cells))
 
   (:viewport-width *width*)
@@ -29,10 +40,19 @@
 
 (defmethod post-initialize ((this sih))
   (setf (cells this) (make-array (list *rows* *cols*) :initial-element nil))
-  (spawn-actor this 'actor)
-  (spawn-actor this 'actor)
-  (spawn-actor this 'policeman)
-  (spawn-actor this 'actor)
+
+  (dotimes (x 5)
+    (spawn-person this 'person))
+
+  (dotimes (x 2)
+    (spawn-person this 'killer))
+
+  (dotimes (x 2)
+    (spawn-person this 'police))
+
+  (dotimes (x 1)
+    (spawn-person this 'medic))
+ 
   (bind-button :escape :pressed #'gamekit:stop)
   (bind-button :q :pressed #'gamekit:stop)
 
@@ -50,7 +70,10 @@
                    (handle-click-cell this row col)))))
 
 (defmethod handle-click-cell ((this sih) row col)
-  (format t "~& ~A x ~A ~%" row col))
+  (when (and (is-cell-valid this row col)
+             (not (is-cell-free this row col)))
+    (play :grab)
+    (format t "Clicked cell: ~A x ~A ~%" row col)))
 
 (defmethod get-empty-cells ((this sih))
   (let ((result '()))
@@ -63,13 +86,16 @@
 (defmethod random-empty-cell ((this sih))
   (random-nth (get-empty-cells this)))
 
-(defmethod spawn-actor ((this sih) type)
-  (let ((actor (make-instance type))
+(defmethod spawn-person ((this sih) type)
+  (let ((person (make-instance type))
         (free-pos (random-empty-cell this)))
-    (push actor (actors this))
-    (setf (row actor) (first free-pos))
-    (setf (col actor) (second free-pos))
-    (setf (aref (cells this) (first free-pos) (second free-pos)) actor)))
+    (when (null free-pos)
+      (format t "Warning: couldn't spawn person on null position: ~A ~%" free-pos)
+      (return-from spawn-person))
+    (push person (persons this))
+    (setf (row person) (first free-pos))
+    (setf (col person) (second free-pos))
+    (setf (aref (cells this) (first free-pos) (second free-pos)) person)))
 
 (defun cell-pos (row col)
   (vec2 (* col *cell-size*) (* row *cell-size*)))
@@ -102,10 +128,10 @@
       T
       nil))
 
-(defmethod get-move-cells ((this sih) actor)
+(defmethod get-move-cells ((this sih) person)
   (let* ((result-cells '())
-         (row (row actor))
-         (col (col actor))
+         (row (row person))
+         (col (col person))
          (try-cells (list
                      (list (1- row) col)
                      (list (1+ row) col)
@@ -120,40 +146,40 @@
 
     result-cells))
 
-(defmethod get-random-move-cell ((this sih) actor)
-  (let* ((cells (get-move-cells this actor)))
+(defmethod get-random-move-cell ((this sih) person)
+  (let* ((cells (get-move-cells this person)))
     (if cells
         (random-nth cells)
         nil)))
 
-(defmethod move-actor ((this sih) actor to-row to-col)
-  (let ((from-row (row actor))
-        (from-col (col actor))
+(defmethod move-person ((this sih) person to-row to-col)
+  (let ((from-row (row person))
+        (from-col (col person))
         (cells (cells this)))
     (setf (aref cells from-row from-col) nil)
-    (setf (aref cells to-row to-col) actor)
-    (setf (row actor) to-row)
-    (setf (col actor) to-col)
-    (setf (rest-time actor) (+ 0.5 (/ 1 (+ 1 (random 9)))))
-    (setf (last-move-time actor) (real-time-seconds))))
+    (setf (aref cells to-row to-col) person)
+    (setf (row person) to-row)
+    (setf (col person) to-col)
+    (setf (rest-time person) (+ 0.5 (/ 1 (+ 1 (random 9)))))
+    (setf (last-move-time person) (real-time-seconds))))
 
-(defmethod move-actors ((this sih))
-  "Check and move the actors"
-  (dolist (actor (actors this))
-    (with-slots (rest-time last-move-time) actor
+(defmethod move-persons ((this sih))
+  "Check and move the person"
+  (dolist (person (persons this))
+    (with-slots (rest-time last-move-time) person
       (when (> (- (real-time-seconds) last-move-time) rest-time)
-        (setf (last-move-time actor) (real-time-seconds))
-        (let* ((to (get-random-move-cell this actor))
+        (setf (last-move-time person) (real-time-seconds))
+        (let* ((to (get-random-move-cell this person))
                (to-row (first to))
                (to-col (second to)))
           (when to
-            (move-actor this actor to-row to-col)))))))
+            (move-person this person to-row to-col)))))))
 
 
 (defmethod gamekit:draw ((this sih))
-  ;; (tick (actor this))
+  ;; (tick (person this))
   ;; (tick (policeman this))
-  (move-actors this)
+  (move-persons this)
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
     (render this)
