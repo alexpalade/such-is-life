@@ -12,3 +12,7 @@
         (let ((x (* col *cell-size*))
               (y (* row *cell-size*)))
           (draw-rect (vec2 x y) *cell-size* *cell-size* :stroke-paint *black*))))))
+
+;(defclass gridpos ()
+;  ((row :initform (error "cell needs row pos") :initarg :row :reader row)
+;   (col :initform (error "cell needs col pos") :initarg :col :reader col)))

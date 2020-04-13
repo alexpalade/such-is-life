@@ -41,7 +41,6 @@
                  (setf (gamekit:x *cursor-pos*) x
                        (gamekit:y *cursor-pos*) y)))
 
-
   (bind-button :mouse-left :pressed
                (lambda ()
                  (let* ((x-mouse (x *cursor-pos*))
@@ -53,12 +52,16 @@
 (defmethod handle-click-cell ((this sih) row col)
   (format t "~& ~A x ~A ~%" row col))
 
-(defmethod random-empty-cell ((this sih))
-  (with-slots (cells) this
+(defmethod get-empty-cells ((this sih))
+  (let ((result '()))
     (dotimes (row *rows*)
       (dotimes (col *cols*)
-        (when (null (aref cells row col))
-          (return-from random-empty-cell (list row col)))))))
+        (when (null (aref (cells this) row col))
+          (push (list row col) result))))
+    result))
+
+(defmethod random-empty-cell ((this sih))
+  (random-nth (get-empty-cells this)))
 
 (defmethod spawn-actor ((this sih) type)
   (let ((actor (make-instance type))
@@ -120,7 +123,7 @@
 (defmethod get-random-move-cell ((this sih) actor)
   (let* ((cells (get-move-cells this actor)))
     (if cells
-        (nth (random (length cells)) cells)
+        (random-nth cells)
         nil)))
 
 (defmethod move-actor ((this sih) actor to-row to-col)
