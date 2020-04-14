@@ -4,7 +4,7 @@
 (defvar *height* 600)
 
 ;; resouces
-(register-resource-package :keyword (asdf:system-relative-pathname :sih "assets/"))
+(register-resource-package :keyword (asdf:system-relative-pathname :society-is-hard "assets/"))
 (define-image :person "person.png")
 (define-image :police "police.png")
 (define-image :killer "killer.png")
