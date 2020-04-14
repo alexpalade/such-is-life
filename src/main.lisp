@@ -9,6 +9,9 @@
 (define-image :police "police.png")
 (define-image :killer "killer.png")
 (define-image :medic "medic.png")
+(define-image :tile "tile.png")
+(define-image :border-tile "border-tile.png")
+
 (define-sound :grab "grab.ogg")
 
 (defvar *cursor-pos* (gamekit:vec2 0 0))
@@ -70,9 +73,9 @@
                    (handle-click-cell this row col)))))
 
 (defmethod handle-click-cell ((this sih) row col)
-  (when (and (is-cell-valid this row col)
-             (not (is-cell-free this row col)))
-    (play :grab)
+  (when (is-cell-valid this row col)
+    (when (not (is-cell-free this row col))
+      (play :grab))
     (format t "Clicked cell: ~A x ~A ~%" row col)))
 
 (defmethod get-empty-cells ((this sih))
@@ -182,8 +185,8 @@
   (move-persons this)
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
-    (render this)
-    (render (grid this))))
+    (render (grid this))
+    (render this)))
 
 (defmethod run ()
   (gamekit:start 'sih))
