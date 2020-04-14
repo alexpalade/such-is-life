@@ -39,7 +39,7 @@
 
   (:viewport-width *width*)
   (:viewport-height *height*)
-  (:viewport-title "Society is Hard"))
+  (:viewport-title "Society Is Hard Game"))
 
 (defmethod post-initialize ((this sih))
   (setf (cells this) (make-array (list *rows* *cols*) :initial-element nil))

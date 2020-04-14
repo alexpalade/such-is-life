@@ -1,7 +1,8 @@
 (cl:pushnew :bodge-gl2 cl:*features*)
 
 (asdf:defsystem :sih
-  :description "Society is Hard Game"
+  :name "society-is-hard"
+  :description "Society Is Hard Game"
   :author "Alexandru Palade"
   :license "GPLv3"
   :version "0.0.1"
