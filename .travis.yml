@@ -8,7 +8,7 @@ addons:
 
 env:
   global:
-  - GAMEKIT_SYSTEM_NAME: sih
+  - GAMEKIT_SYSTEM_NAME: society-is-hard
   - GAMEKIT_APPLICATION_PACKAGE: sih
   - GAMEKIT_APPLICATION_MAIN_CLASS: sih
   - PATH: ~/.bodge/bin/:$PATH

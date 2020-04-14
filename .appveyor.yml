@@ -6,7 +6,7 @@ platform:
 
 environment:
   global:
-    GAMEKIT_SYSTEM_NAME: sih
+    GAMEKIT_SYSTEM_NAME: society-is-hard
     GAMEKIT_APPLICATION_PACKAGE: sih
     GAMEKIT_APPLICATION_MAIN_CLASS: sih
     GAMEKIT_ARTIFACT: $(GAMEKIT_SYSTEM_NAME)-x86-64-windows-$(APPVEYOR_REPO_TAG_NAME).zip
