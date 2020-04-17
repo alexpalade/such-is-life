@@ -9,10 +9,10 @@
   :depends-on (trivial-gamekit)
   :pathname "src/"
   :components ((:file "package")
-               (:file "util")
                (:file "math")
                (:file "grid")
                (:file "person")
+               (:file "util")
                (:file "killer")
                (:file "police")
                (:file "medic")

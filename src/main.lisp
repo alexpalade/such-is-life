@@ -9,10 +9,14 @@
 (define-image :police "police.png")
 (define-image :killer "killer.png")
 (define-image :medic "medic.png")
+
+;(define-image :biohazard "biohazard.png")
+
 (define-image :tile "tile.png")
 (define-image :border-tile "border-tile.png")
 
 (define-sound :grab "grab.ogg")
+(define-sound :death "death.ogg")
 
 (defvar *cursor-pos* (gamekit:vec2 0 0))
 
@@ -44,17 +48,12 @@
 (defmethod post-initialize ((this sih))
   (setf (cells this) (make-array (list *rows* *cols*) :initial-element nil))
 
-  (dotimes (x 5)
-    (spawn-person this 'person))
-
-  (dotimes (x 2)
-    (spawn-person this 'killer))
-
-  (dotimes (x 2)
-    (spawn-person this 'police))
-
-  (dotimes (x 1)
-    (spawn-person this 'medic))
+  (spawn-persons this 'person 30)
+  (spawn-persons this 'killer 1)
+  (spawn-persons this 'police 10)
+  (spawn-persons this 'medic 10)
+  (become-sick (first (persons this)))
+  (become-sick (second (persons this)))
  
   (bind-button :escape :pressed #'gamekit:stop)
   (bind-button :q :pressed #'gamekit:stop)
@@ -75,6 +74,7 @@
 (defmethod handle-click-cell ((this sih) row col)
   (when (is-cell-valid this row col)
     (when (not (is-cell-free this row col))
+      (format t "~A~%" (get-near-persons this (get-cell this row col)))
       (play :grab))
     (format t "Clicked cell: ~A x ~A ~%" row col)))
 
@@ -88,6 +88,10 @@
 
 (defmethod random-empty-cell ((this sih))
   (random-nth (get-empty-cells this)))
+
+(defmethod spawn-persons ((this sih) type &optional (how-many 1))
+  (dotimes (n how-many)
+    (spawn-person this type)))
 
 (defmethod spawn-person ((this sih) type)
   (let ((person (make-instance type))
@@ -123,38 +127,6 @@
   "Return seconds since certain point of time"
   (/ (get-internal-real-time) internal-time-units-per-second))
 
-(defmethod is-cell-valid ((this sih) row col)
-  (and (>= row 0) (>= col 0) (< row *rows*) (< col *cols*)))
-
-(defmethod is-cell-free ((this sih) row col)
-  (if (null (aref (cells this) row col))
-      T
-      nil))
-
-(defmethod get-move-cells ((this sih) person)
-  (let* ((result-cells '())
-         (row (row person))
-         (col (col person))
-         (try-cells (list
-                     (list (1- row) col)
-                     (list (1+ row) col)
-                     (list row (1+ col))
-                     (list row (1- col)))))
-
-    (dolist (try-cell try-cells)
-      (when (and
-             (is-cell-valid this (first try-cell) (second try-cell))
-             (is-cell-free this (first try-cell) (second try-cell)))
-        (push try-cell result-cells)))
-
-    result-cells))
-
-(defmethod get-random-move-cell ((this sih) person)
-  (let* ((cells (get-move-cells this person)))
-    (if cells
-        (random-nth cells)
-        nil)))
-
 (defmethod move-person ((this sih) person to-row to-col)
   (let ((from-row (row person))
         (from-col (col person))
@@ -163,7 +135,7 @@
     (setf (aref cells to-row to-col) person)
     (setf (row person) to-row)
     (setf (col person) to-col)
-    (setf (rest-time person) (+ 0.5 (/ 1 (+ 1 (random 9)))))
+    (setf (rest-time person) (/ (+ 1000 (random 2000)) 1000))
     (setf (last-move-time person) (real-time-seconds))))
 
 (defmethod move-persons ((this sih))
@@ -180,13 +152,116 @@
 
 
 (defmethod gamekit:draw ((this sih))
-  ;; (tick (person this))
-  ;; (tick (policeman this))
   (move-persons this)
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
     (render (grid this))
     (render this)))
+
+(defmethod get-cell ((this sih) row col)
+  (when (is-cell-valid this row col)
+    (aref (cells this) row col)))
+
+;; retuns A LIST of elements like '(row col)
+(defmethod get-near-cells-person ((person person))
+  (get-near-cells (row person) (col person) *rows* *cols*))
+
+;; retuns a list of persons
+(defmethod get-near-persons ((game sih) (person person))
+  (let ((near-cells (get-near-cells-person person))
+        (cells (cells game)))
+    (remove-if #'null
+               (map 'list
+                    (lambda (cell) (aref cells (first cell) (second cell)))
+                    near-cells))))
+
+(defmethod get-near-persons-of-type ((game sih) (person person) type)
+  (remove-if-not
+   (lambda (p) (typep p type))
+   (get-near-persons game person)))
+
+(defmethod get-near-persons-not-of-type ((game sih) (person person) type)
+  (remove-if
+   (lambda (p) (typep p type))
+   (get-near-persons game person)))
+
+(defmethod get-near-sick-persons ((game sih) (person person))
+  (remove-if-not
+   (lambda (p) (sick p))
+   (get-near-persons game person)))
+
+(defmethod is-cell-valid ((this sih) row col)
+  (and (>= row 0) (>= col 0) (< row *rows*) (< col *cols*)))
+
+(defmethod is-cell-free ((this sih) row col)
+  (if (null (aref (cells this) row col))
+      T
+      nil))
+
+(defmethod get-near-free-cells ((this sih) person)
+  (let* ((result-cells '())
+         (near-cells (get-near-cells-person person)))
+    (dolist (try-cell near-cells)
+      (when (and
+             (is-cell-valid this (first try-cell) (second try-cell))
+             (is-cell-free this (first try-cell) (second try-cell)))
+        (push try-cell result-cells)))
+    result-cells))
+
+(defmethod get-random-move-cell ((this sih) person)
+  (let* ((cells (get-near-free-cells this person)))
+    (if cells
+        (random-nth cells)
+        nil)))
+
+(defmethod get-all-persons-of-type ((this sih) type)
+  (remove-if-not
+   (lambda (p) (typep p type))
+   (persons this)))
+
+(defmethod get-killers ((this sih))
+  (get-all-persons-of-type this 'killer))
+
+(defmethod get-medics ((this sih))
+  (get-all-persons-of-type this 'medic))
+
+(defmethod act ((this sih))
+  (dolist (killer (get-killers this))
+    (when (and
+           (< (random 100) 5)
+           (kill-cooldown-ok killer))
+      (let ((persons (get-near-persons-not-of-type this killer 'police)))
+        (when persons
+          (setf (last-kill-time killer) (real-time-seconds))
+          (do-kill this killer (first persons))))))
+          ;(format t "~A kills ~A. ~%" killer (first persons)))))))
+
+  (dolist (medic (get-medics this))
+    (dolist (sick-person (get-near-sick-persons this medic))
+      (incf (medicine sick-person))
+      (when (>= (medicine sick-person) 300)
+        (become-healthy sick-person))))
+
+  (dolist (person (persons this))
+    (when (sick person)
+      (when (> (- (real-time-seconds) (last-cough-time person)) 0.2)
+        (cough person)
+        (when (<= (health person) 0)
+          (remove-person this person)
+          (play :death)))
+      (dolist (near-person (get-near-persons this person))
+        (when (= 0 (random 500))
+          (become-sick near-person))))))
+
+(defmethod remove-person ((this sih) person)
+  (setf (aref (cells this) (row person) (col person)) nil)
+  (setf (persons this) (delete person (persons this))))
+
+(defmethod do-kill ((this sih) killer person)
+  (remove-person this person)
+  (move-person this killer (row person) (col person))
+  (play :death))
+
 
 (defmethod run ()
   (gamekit:start 'sih))
