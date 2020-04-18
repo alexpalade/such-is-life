@@ -1,7 +1,10 @@
 (cl:in-package :sih)
 
 (defclass person ()
-  ((dest :initform (vec2 200 200) :accessor dest)
+  ((destination :initform nil :accessor destination)
+   (path :initform nil :accessor path)
+   (target :initform nil :accessor target)
+   (state :initform 'wander :accessor state)
    (rest-time :initform (+ 0.5 (/ 1 (+ 0.1 (random 10)))) :accessor rest-time)
    (row :initform nil :accessor row)
    (col :initform nil :accessor col)
@@ -10,6 +13,13 @@
    (medicine :initform 0 :accessor medicine)
    (last-cough-time :initform nil :accessor last-cough-time)
    (last-move-time :initform (/ 1 (1+ (random 10))) :accessor last-move-time)))
+
+(defmethod state-p ((this person) state)
+  (equal (state this) state))
+
+(defmethod regular-person-p ((person person))
+  (not (or (typep person 'police)
+           (typep person 'medic))))
 
 (defmethod become-sick ((this person))
   (when (not (sick this))
@@ -22,8 +32,40 @@
   (setf (sick this) nil))
 
 (defmethod cough ((this person))
-  (decf (health this) 1)
+  (decf (health this) 0.5)
   (setf (last-cough-time this) (real-time-seconds)))
+
+(defmethod move-person ((game sih) person to-row to-col)
+  (let ((from-row (row person))
+        (from-col (col person))
+        (cells (cells game)))
+    (setf (aref cells from-row from-col) nil)
+    (setf (aref cells to-row to-col) person)
+    (setf (row person) to-row)
+    (setf (col person) to-col)
+    (setf (last-move-time person) (real-time-seconds))))
+
+(defmethod tick ((game sih) (person person))
+  (when (sick person)
+    (when (> (- (real-time-seconds) (last-cough-time person)) 0.2)
+      (cough person)
+      (when (<= (health person) 0)
+        (remove-person game person)
+        (play :death)))
+    (dolist (near-person (get-near-persons game person))
+      (when (= 0 (random 500))
+        (become-sick near-person))))
+  (with-slots (rest-time last-move-time) person
+    (when (and
+           (state-p person 'wander)
+           (> (- (real-time-seconds) last-move-time) rest-time))
+        (let* ((to (get-random-move-cell game person))
+               (to-row (first to))
+               (to-col (second to)))
+          (when to
+            (setf (rest-time person) (/ (+ 1000 (random 2000)) 1000))
+            (move-person game person to-row to-col))))))
+
 
 (defmethod render-avatar ((this person) asset)
   (with-pushed-canvas ()
@@ -34,14 +76,6 @@
            (scaled-cell-size (/ *cell-size* scale))
            (scale-no-padding (/ *cell-size* scale-for))
            (scaled-cell-size-no-padding (/ *cell-size* scale-no-padding)))
-      ;(with-pushed-canvas ()
-      ;  (scale-canvas scale-no-padding scale-no-padding)
-      ;  (when (sick this)
-      ;    (draw-image
-      ;     (vec2 (- (/ scaled-cell-size-no-padding 2) (/ width 2))
-      ;           (- (/ scaled-cell-size-no-padding 2) (/ height 2)))
-      ;     :biohazard)))
-
       (when (sick this)
         (let ((alpha (+ 0.5 (- 0.5 (/ (health this) 100)))))
           (draw-rect (vec2 0 0) *cell-size* *cell-size*

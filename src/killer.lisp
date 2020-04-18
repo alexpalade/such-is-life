@@ -6,10 +6,19 @@
 ;(defmethod act ((this killer))
 ;  (get-neighbors sih this)
 
-(defmethod render ((this killer))
-  (render-avatar this :killer))
+(defmethod tick :before ((game sih) (killer killer))
+  (when (and
+         (< (random 100) 5)
+         (kill-cooldown-ok killer))
+    (let ((persons (get-near-persons-not-of-type game killer 'police)))
+      (when persons
+        (setf (last-kill-time killer) (real-time-seconds))
+        (do-kill game killer (first persons))))))
 
 (defmethod kill-cooldown-ok ((this killer))
   (or
    (null (last-kill-time this))
    (> (- (real-time-seconds) (last-kill-time this)) 1)))
+
+(defmethod render ((this killer))
+  (render-avatar this :killer))

@@ -36,8 +36,6 @@
       (render-tile this x (- *cell-size*) :border-tile)
       (render-tile this x (* (rows this) *cell-size*) :border-tile))))
 
-
-  
 (defmethod render-tile ((this grid) x y asset)
   (with-pushed-canvas ()
     (let* ((width (image-width asset))
@@ -46,3 +44,6 @@
       (draw-image
        (vec2 (/ x scale) (/ y scale))
        asset))))
+
+(defmethod distance-between (row1 col1 row2 col2)
+  (+ (abs (- row1 row2)) (abs (- col1 col2))))
