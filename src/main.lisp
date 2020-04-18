@@ -1,11 +1,36 @@
 (cl:in-package :sih)
 
 (defparameter *rows-adjusted* nil)
+(defparameter *population-percentage-adjusted* nil)
+(defparameter *population-percentage* 5)
+(defparameter *sick-percentage-adjusted* nil)
+(defparameter *sick-percentage* 10)
+(defparameter *medics-count-adjusted* nil)
+(defparameter *medics-count* 3)
+(defparameter *police-count-adjusted* nil)
+(defparameter *police-count* 2)
+(defparameter *killers-count-adjusted* nil)
+(defparameter *killers-count* 2)
 
 (defmethod restart-game ((game sih))
 
   (when *rows-adjusted*
     (setf *rows* *rows-adjusted*))
+
+  (when *population-percentage-adjusted*
+    (setf *population-percentage* *population-percentage-adjusted*))
+
+  (when *sick-percentage-adjusted*
+    (setf *sick-percentage* *sick-percentage-adjusted*))
+
+  (when *medics-count-adjusted*
+    (setf *medics-count* *medics-count-adjusted*))
+
+  (when *police-count-adjusted*
+    (setf *police-count* *police-count-adjusted*))
+
+  (when *killers-count-adjusted*
+    (setf *killers-count* *killers-count-adjusted*))
 
   ;; recalculating stuff. yuck!
   (setf *cell-size* (/ *grid-height* *rows*))
@@ -33,16 +58,23 @@
 
     (place-hospital game 0 0)
 
-    (spawn-persons game 'person *rows*)
+    (let* ((population-percentage (/ *population-percentage* 100))
+           (num-cells (* *rows* *cols*))
+           (how-many-persons (round (* population-percentage num-cells)))
+           (sick-percentage (/ *sick-percentage* 100))
+           (how-many-sick (round (* sick-percentage how-many-persons))))
+      (spawn-persons game 'person how-many-persons)
+      (format t "~& perc = ~A, ~A for ~A cells ~%" population-percentage how-many-persons num-cells)
+      (format t "~& % = ~A ~%" sick-percentage)
+      (format t "~& ~A out of ~A ~%" how-many-sick how-many-persons)
+      (dotimes (n how-many-sick)
+        (become-sick (nth n (persons game)))))
 
-    (become-sick (first (persons game)))
-    (become-sick (second (persons game)))
-    (become-sick (third (persons game)))
-    (become-sick (fourth (persons game)))
+    (spawn-persons game 'police *police-count*)
 
-    (spawn-persons game 'killer 2)
-    (spawn-persons game 'police 2)
-    (spawn-persons game 'medic 3)))
+    (spawn-persons game 'killer *killers-count*)
+
+    (spawn-persons game 'medic *medics-count*)))
 
 (defmethod post-initialize ((game sih))
   (restart-game game)
@@ -57,15 +89,46 @@
                                   :action (lambda ()
                                             (restart-game game)))
                    (make-instance 'adjuster
-                                  :allowed-values '(5 10 20 30 40 50)
+                                  :allowed-values '(10 15 20 25 30 40 50)
                                   :current-value *rows*
                                   :text "Size"
                                   :action (lambda (value)
                                             (setf *rows-adjusted* value)))
-                   (make-instance 'button
-                                  :text "Tests"
-                                  :action (lambda ()
-                                            (format t "~& TEST ~%"))))))
+
+                   (make-instance 'adjuster
+                                  :allowed-values '(1 2 3 4 5 7 10 15 20 30)
+                                  :current-value *population-percentage*
+                                  :text "Population %"
+                                  :action (lambda (value)
+                                            (setf *population-percentage-adjusted* value)))
+
+                   (make-instance 'adjuster
+                                  :allowed-values '(1 5 10 15 20 30 40 50 60 70 80 90 100)
+                                  :current-value *sick-percentage*
+                                  :text "Sick %"
+                                  :action (lambda (value)
+                                            (setf *sick-percentage-adjusted* value)))
+
+                   (make-instance 'adjuster
+                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                  :current-value *police-count*
+                                  :text "Police"
+                                  :action (lambda (value)
+                                            (setf *police-count-adjusted* value)))
+
+                   (make-instance 'adjuster
+                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                  :current-value *medics-count*
+                                  :text "Medics"
+                                  :action (lambda (value)
+                                            (setf *medics-count* value)))
+
+                   (make-instance 'adjuster
+                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                  :current-value *killers-count*
+                                  :text "Killers"
+                                  :action (lambda (value)
+                                            (setf *killers-count-adjusted* value))))))
     (dolist (element elements)
       (add-element (panel game) element)))
 
@@ -142,6 +205,7 @@
   (random-nth (get-empty-cells this)))
 
 (defmethod spawn-persons ((this sih) type &optional (how-many 1))
+  (format t "~& Spawning person type ~A ~%" type)
   (dotimes (n how-many)
     (spawn-person this type)))
 

@@ -2,6 +2,7 @@
 
 ;; resouces
 (register-resource-package :keyword (asdf:system-relative-pathname :society-is-hard "assets/"))
+
 (define-image :person "person.png")
 (define-image :police "police.png")
 (define-image :killer "killer.png")
@@ -27,7 +28,7 @@
 (defparameter *padding-bottom* 20)
 (defparameter *grid-height* (- *stage-height* (* 2 *padding-bottom*)))
 
-(defparameter *rows* 5)
+(defparameter *rows* 20)
 (defparameter *cell-size* (/ *grid-height* *rows*))
 (defparameter *cell-half* (/ *cell-size* 2))
 (defparameter *cols* (floor (/ (- *stage-width* (* 2 *padding-bottom*)) *cell-size*)))
