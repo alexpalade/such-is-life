@@ -9,7 +9,13 @@
   :depends-on (trivial-gamekit)
   :pathname "src/"
   :components ((:file "package")
+               (:file "parameters")
+               (:file "sih")
                (:file "math")
+               (:file "ui/button")
+               (:file "ui/adjuster")
+               (:file "ui/label")
+               (:file "ui/panel")
                (:file "grid")
                (:file "util")
                (:file "pathfinding")

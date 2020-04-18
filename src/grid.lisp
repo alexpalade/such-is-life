@@ -7,7 +7,7 @@
 
 (defmethod render ((this grid))
   (with-pushed-canvas ()
-    (render-borders this)
+    ;(render-borders this)
     (dotimes (row (rows this))
       (dotimes (col (cols this))
         (let ((x (* col *cell-size*))

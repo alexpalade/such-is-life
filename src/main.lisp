@@ -1,70 +1,73 @@
 (cl:in-package :sih)
 
-(defvar *width* 800)
-(defvar *height* 600)
+(defparameter *rows-adjusted* nil)
 
-;; resouces
-(register-resource-package :keyword (asdf:system-relative-pathname :society-is-hard "assets/"))
-(define-image :person "person.png")
-(define-image :police "police.png")
-(define-image :killer "killer.png")
-(define-image :medic "medic.png")
+(defmethod restart-game ((game sih))
 
-(define-image :hospital "hospital.png")
+  (when *rows-adjusted*
+    (setf *rows* *rows-adjusted*))
 
-(define-image :tile "tile.png")
-(define-image :border-tile "border-tile.png")
+  ;; recalculating stuff. yuck!
+  (setf *cell-size* (/ *grid-height* *rows*))
+  (setf *cell-half* (/ *cell-size* 2))
+  (setf *cols* (floor (/ (- *stage-width* (* 2 *padding-bottom*)) *cell-size*)))
+  (setf *padding-left* (/ (- *stage-width* (* *cell-size* *cols*)) 2))
+  (setf *grid-width* (- *stage-width* (* 2 *padding-left*)))
+  (setf *cols* (floor (/ *grid-width* *cell-size*)))
+  (setf *cell-padding* (* 0.1 *cell-size*))
 
-(define-sound :grab "grab.ogg")
-(define-sound :death "death.ogg")
+  (setf *grid-thickness* (- 1 (/ *rows* *grid-thickness-to-rows-factor*)))
 
-(defvar *cursor-pos* (gamekit:vec2 0 0))
+  (let ((r (x *grid-base-color*))
+        (g (y *grid-base-color*))
+        (b (z *grid-base-color*))
+        (a (alexandria:clamp (/ 0.2 *grid-thickness*) 0 1)))
+    (setf *grid-color* (vec4 r g b a)))
 
-(defparameter *padding-bottom* 20)
-(defparameter *grid-height* (- *height* (* 2 *padding-bottom*)))
-(defparameter *rows* 20)
-(defparameter *cell-size* (/ *grid-height* *rows*))
-(defparameter *cell-half* (/ *cell-size* 2))
-(defparameter *cols* (floor (/ (- *width* (* 2 *padding-bottom*)) *cell-size*)))
-(defparameter *padding-left* (/ (- *width* (* *cell-size* *cols*)) 2))
-(defparameter *grid-width* (- *width* (* 2 *padding-left*)))
-(defparameter *cols* (floor (/ *grid-width* *cell-size*)))
-(defparameter *once* nil)
+  (with-slots (grid cells persons quarantine-from quarantine-to) game
+    (setf grid (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*))
+    (setf cells (make-array (list *rows* *cols*) :initial-element nil))
+    (setf persons nil)
+    (setf quarantine-from nil)
+    (setf quarantine-to nil)
 
-(defparameter *area-dragging-p* nil)
+    (place-hospital game 0 0)
 
-;; % padding between a cell and the image assets
-(defparameter *cell-padding* (* 0.1 *cell-size*))
+    (spawn-persons game 'person *rows*)
 
-(defvar *black* (gamekit:vec4 0 0 0 1))
+    (become-sick (first (persons game)))
+    (become-sick (second (persons game)))
+    (become-sick (third (persons game)))
+    (become-sick (fourth (persons game)))
 
-(gamekit:defgame sih ()
-  ((grid :initform (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*) :accessor grid)
-   (persons :initform '() :accessor persons)
-   (cells :accessor cells)
-   (hospital :accessor hospital :initform nil)
-   (quarantine-from :accessor quarantine-from :initform nil)
-   (quarantine-to :accessor quarantine-to :initform nil))
+    (spawn-persons game 'killer 2)
+    (spawn-persons game 'police 2)
+    (spawn-persons game 'medic 3)))
 
-  (:viewport-width *width*)
-  (:viewport-height *height*)
-  (:viewport-title "Society Is Hard Game"))
+(defmethod post-initialize ((game sih))
+  (restart-game game)
 
-(defmethod post-initialize ((this sih))
-  (setf (cells this) (make-array (list *rows* *cols*) :initial-element nil))
-
-  (place-hospital this 0 0)
-
-  (spawn-persons this 'person 100)
-
-  (become-sick (first (persons this)))
-  (become-sick (second (persons this)))
-  (become-sick (third (persons this)))
-  (become-sick (fourth (persons this)))
-
-  (spawn-persons this 'killer 2)
-  (spawn-persons this 'police 2)
-  (spawn-persons this 'medic 3)
+  (let ((elements (list
+                   (make-instance 'label
+                                  :text "Such is Life"
+                                  :action (lambda ()
+                                            (restart-game game)))
+                   (make-instance 'button
+                                  :text "Restart"
+                                  :action (lambda ()
+                                            (restart-game game)))
+                   (make-instance 'adjuster
+                                  :allowed-values '(5 10 20 30 40 50)
+                                  :current-value *rows*
+                                  :text "Size"
+                                  :action (lambda (value)
+                                            (setf *rows-adjusted* value)))
+                   (make-instance 'button
+                                  :text "Tests"
+                                  :action (lambda ()
+                                            (format t "~& TEST ~%"))))))
+    (dolist (element elements)
+      (add-element (panel game) element)))
 
   (bind-button :escape :pressed #'gamekit:stop)
   (bind-button :q :pressed #'gamekit:stop)
@@ -73,7 +76,7 @@
                  "Save cursor position"
                  (setf (gamekit:x *cursor-pos*) x
                        (gamekit:y *cursor-pos*) y)
-                 (handle-cursor-move this)))
+                 (handle-cursor-move game)))
 
   (bind-button :mouse-left :released
                (lambda ()
@@ -84,7 +87,8 @@
                (lambda ()
                  (let ((row (first (cursor-to-cell)))
                        (col (second (cursor-to-cell))))
-                   (handle-click-cell this row col)))))
+                   (handle-click-cell game row col)
+                   (click-event (panel game) *cursor-pos*)))))
 
 (defun cursor-to-cell ()
   (let* ((x-mouse (x *cursor-pos*))
@@ -356,16 +360,17 @@
   (move-person this killer (row person) (col person))
   (play :death))
 
-(defmethod gamekit:draw ((this sih))
+(defmethod gamekit:draw ((game sih))
+  (render (panel game))
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
-    (render (grid this))
-    (dolist (medic (get-medics this))
-      (render-path this medic))
-    (render this)
+    (render (grid game))
+    (dolist (medic (get-medics game))
+      (render-path game medic))
+    (render game)
 
-    (when (and (quarantine-to this) (quarantine-from this))
-      (let* ((corners (quarantine-corners this))
+    (when (and (quarantine-to game) (quarantine-from game))
+      (let* ((corners (quarantine-corners game))
              (top-row (getf corners :top-row))
              (bottom-row (getf corners :bottom-row))
              (left-col (getf corners :left-col))
@@ -378,8 +383,8 @@
              (height (abs (- from-y to-y))))
         (when (not *once*)
           (format t "cell size ~A ~%" *cell-size*)
-          (format t "quarantine-from ~A ~%" (quarantine-from this))
-          (format t "quarantine-to ~A ~%" (quarantine-to this))
+          (format t "quarantine-from ~A ~%" (quarantine-from game))
+          (format t "quarantine-to ~A ~%" (quarantine-to game))
           (format t "corners ~A ~%" corners)
           (format t "coords: ~A ~A -> ~A ~A ~%" from-x from-y to-x to-y)
           (setf *once* T))
@@ -387,9 +392,9 @@
                  :thickness 3
                  :stroke-paint (vec3 0.9 0.1 0.1))))))
 
-(defmethod render ((this sih))
+(defmethod render ((game sih))
   (draw-time)
-  (with-slots (cells) this
+  (with-slots (cells) game
     (dotimes (row *rows*)
       (dotimes (col *cols*)
         (when (aref cells row col)
