@@ -22,7 +22,6 @@
 (define-image :ok-sign "ok-sign.png")
 (define-image :not-ok-sign "not-ok-sign.png")
 
-(define-sound :grab "grab.ogg")
 (define-sound :death "death.ogg")
 
 (defvar *cursor-pos* (gamekit:vec2 0 0))
