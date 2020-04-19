@@ -3,15 +3,24 @@
 ;; resouces
 (register-resource-package :keyword (asdf:system-relative-pathname :such-is-life "assets/"))
 
-(define-image :person "person.png")
-(define-image :police "police.png")
+(define-image :person-male "person-male.png")
+(define-image :person-female "person-female.png")
+
 (define-image :killer "killer.png")
+(define-image :killer-male-disguised "person-male-disguised.png")
+(define-image :killer-female-disguised "person-female-disguised.png")
+
+(define-image :police-male "police-male.png")
+(define-image :police-female "police-female.png")
 (define-image :medic "medic.png")
 
+(define-image :prison "prison.png")
 (define-image :hospital "hospital.png")
 
 (define-image :tile "tile.png")
-(define-image :border-tile "border-tile.png")
+
+(define-image :ok-sign "ok-sign.png")
+(define-image :not-ok-sign "not-ok-sign.png")
 
 (define-sound :grab "grab.ogg")
 (define-sound :death "death.ogg")
@@ -39,8 +48,6 @@
 (defparameter *area-dragging-p* nil)
 ;; % padding between a cell and the image assets
 (defparameter *cell-padding* (* 0.1 *cell-size*))
-
-(defparameter *once* nil)
 
 (gamekit:defgame sil-game ()
   ((grid :initform (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*) :accessor grid)

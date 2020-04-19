@@ -1,10 +1,10 @@
 (cl:in-package :sil-game)
 
-(defparameter *population-percentage* 5)
+(defparameter *population-percentage* 15)
 (defparameter *sick-percentage* 10)
-(defparameter *medics-count* 3)
-(defparameter *police-count* 2)
-(defparameter *killers-count* 2)
+(defparameter *medics-count* 1)
+(defparameter *police-count* 1)
+(defparameter *killers-count* 3)
 (defparameter *sick-cough-frequency* 5)
 (defparameter *sick-cough-damage* 1)
 
@@ -69,7 +69,8 @@
 
     (setf start-time (real-time-seconds))
 
-    (place-hospital game 0 0)
+    (let ((random-cell (random-empty-cell game)))
+      (place-hospital game (first random-cell) (second random-cell)))
 
     (let* ((population-percentage (/ *population-percentage* 100))
            (num-cells (* *rows* *cols*))
@@ -113,11 +114,25 @@
                        (getf (statistics game) :dead)))))
 
 (defmethod update-label-sick ((game sil-game) (label label))
-  (setf (text label)
-        (concatenate 'string
-                      "Sick: "
-                      (write-to-string
-                       (getf (statistics game) :sick)))))
+  (let ((sick (getf (statistics game) :sick)))
+    (if (plusp sick)
+        (setf (status-image label) :not-ok-sign)
+        (setf (status-image label) :ok-sign))
+    (setf (text label)
+          (concatenate 'string
+                       "Sick: "
+                       (write-to-string sick)))))
+
+(defmethod update-label-killers ((game sil-game) (label label))
+  (let ((killers (getf (statistics game) :killers)))
+    (if (plusp killers)
+        (setf (status-image label) :not-ok-sign)
+        (setf (status-image label) :ok-sign))
+
+    (setf (text label)
+          (concatenate 'string
+                       "Killers: "
+                       (write-to-string killers)))))
 
 (defmethod update-status-bar ((game sil-game) (bar status-bar))
   (setf (alive bar) (getf (statistics game) :alive))
@@ -144,6 +159,10 @@
                                      :no-padding t
                                      :text-align 'left
                                      :update #'update-label-sick))
+         (killers (make-instance 'label :text "Killers: ?"
+                                     :no-padding t
+                                     :text-align 'left
+                                     :update #'update-label-killers))
          (status-bar (make-instance 'status-bar
                                      :no-padding t
                                      :update #'update-status-bar))
@@ -182,7 +201,7 @@
          (cough-frequency-adjuster (make-instance 'adjuster
                                          :allowed-values '(0.5 1 2 3 4 5 6 7 8 9 10)
                                          :current-value *sick-cough-frequency*
-                                         :text "Per sec."
+                                         :text "Rate"
                                          :action (lambda (value) (setf *sick-cough-frequency-adjusted* value))))
          (cough-damage-adjuster (make-instance 'adjuster
                                          :allowed-values '(0.1 0.5 1 2 5 10)
@@ -192,10 +211,11 @@
     (add-element panel title)
     (add-element panel subtitle)
     (add-element panel (make-instance 'separator))
-    (add-element panel (make-instance 'label :text "Status"))
+    (add-element panel (make-instance 'label :text "Statistics"))
     (add-element panel alive)
     (add-element panel dead)
     (add-element panel sick)
+    (add-element panel killers)
     (add-element panel status-bar)
     (add-element panel (make-instance 'separator))
     (add-element panel (make-instance 'label :text "Settings"))
@@ -206,7 +226,7 @@
     (add-element panel police-adjuster)
     (add-element panel killers-adjuster)
     (add-element panel (make-instance 'separator))
-    (add-element panel (make-instance 'label :text "Coughs..."))
+    (add-element panel (make-instance 'label :text "Virus..."))
     (add-element panel cough-frequency-adjuster)
     (add-element panel cough-damage-adjuster)
     (add-element panel (make-instance 'separator))
@@ -221,9 +241,14 @@
                        (gamekit:y *cursor-pos*) y)
                  (handle-cursor-move game)))
 
+  (bind-button :mouse-right :pressed
+               (lambda ()
+                 (let ((row (first (cursor-to-cell)))
+                       (col (second (cursor-to-cell))))
+                   (handle-right-click-cell game row col))))
+
   (bind-button :mouse-left :released
                (lambda ()
-                 (setf *once* nil)
                  (setf *area-dragging-p* nil)))
 
   (bind-button :mouse-left :pressed
@@ -241,38 +266,26 @@
     (list row col)))
 
 (defmethod handle-cursor-move ((this sil-game))
-  (when *area-dragging-p*
+  (when (and
+         *area-dragging-p*
+         (cell-valid-p this (first (cursor-to-cell)) (second (cursor-to-cell))))
     (setf (quarantine-to this) (cursor-to-cell))))
 
 (defmethod handle-click-cell ((this sil-game) row col)
-  (setf *once* nil)
   (when (cell-valid-p this row col)
     (let ((obj (aref (cells this) row col)))
       (format t "Cell: ~A x ~A ~%" row col)
       (when (not (cell-free-p this row col))
         (when (person-p obj)
-          (format t "Yes: ~A~%" (col (aref (cells this) row col)))
-          (format t "State: ~A~%" (state (aref (cells this) row col))))
-        (when (typep obj 'medic)
-          (format t "Path: ~A~%" (path obj))))
-      (when (or (cell-free-p this row col)
-                (not (person-p obj)))
+          (format t "State: ~A~%" (state (aref (cells this) row col)))))
         (setf *area-dragging-p* t)
         (setf (quarantine-to this) (cursor-to-cell))
-        (setf (quarantine-from this) (cursor-to-cell))))))
+        (setf (quarantine-from this) (cursor-to-cell)))))
 
-    ;(when (cell-free-p this row col)
-    ;  (place-hospital this row col)
-    ;  (let ((med (first (get-medics this))))
-    ;    (when med
-    ;      (setf (destination med) (list row col))
-    ;      (update-path-person this med)
-    ;      (setf (state med) 'target)
-    ;      (format t "~A~%" (path med)))))))
-
-                                        ;(when (not (cell-free-p this row col))
-                                        ;  (format t "~A~%" (get-near-persons this (get-cell this row col)))
-                                        ;  (play :grab))
+(defmethod handle-right-click-cell ((this sil-game) row col)
+  (when (and (cell-valid-p this row col)
+             (cell-free-p this row col))
+    (place-hospital this row col)))
 
 (defmethod get-empty-cells ((this sil-game))
   (let ((result '()))
@@ -286,35 +299,8 @@
   (random-nth (get-empty-cells this)))
 
 (defmethod spawn-persons ((this sil-game) type &optional (how-many 1))
-  (format t "~& Spawning person type ~A ~%" type)
   (dotimes (n how-many)
     (spawn-person this type)))
-
-(defclass hospital ()
-  ((row :initarg row :accessor row)
-   (col :initarg col :accessor col)))
-
-(defmethod render ((this hospital))
-  (with-pushed-canvas ()
-    (let* ((asset :hospital)
-           (width (image-width asset))
-           (height (image-height asset))
-           (scale-for (max width height))
-           (scale (/ (- *cell-size* *cell-padding*) scale-for))
-           (scaled-cell-size (/ *cell-size* scale)))
-      (scale-canvas scale scale)
-      (draw-image
-       (vec2 (- (/ scaled-cell-size 2) (/ width 2))
-             (- (/ scaled-cell-size 2) (/ height 2)))
-       asset))))
-
-(defmethod place-hospital ((this sil-game) row col)
-  (if (null (hospital this))
-      (setf (hospital this) (make-instance 'hospital))
-      (setf (aref (cells this) (row (hospital this)) (col (hospital this))) nil))
-  (setf (row (hospital this)) row)
-  (setf (col (hospital this)) col)
-  (setf (aref (cells this) row col) (hospital this)))
 
 (defmethod spawn-person ((this sil-game) type)
   (let ((person (make-instance type))
@@ -339,7 +325,8 @@
 
 (defmethod get-sick-person ((this sil-game))
   (dolist (p (alexandria:shuffle (persons this)))
-    (when (and (sick p)
+    (when (and (not (and (typep p 'killer) (locked p)))
+               (sick p)
                (state-p p 'wander))
       (return-from get-sick-person p))))
 
@@ -497,12 +484,60 @@
   (setf (persons game) (remove person (persons game))))
 
 (defmethod do-kill ((this sil-game) killer person)
+  ;; medic died, released grabbed person
+  (when (and (typep person 'medic)
+             (state-p person 'grab-sick)
+             (not (null (target person))))
+    (format t "~& HELP ~A ~%" (target person))
+    (setf (state (target person)) 'wander))
+
   (remove-person this person)
   (move-person this killer (row person) (col person))
   (play :death))
 
+(defclass hospital ()
+  ((row :initarg row :accessor row)
+   (col :initarg col :accessor col)))
+
+(defmethod render ((this hospital))
+  (with-pushed-canvas ()
+    (let* ((asset :hospital)
+           (width (image-width asset))
+           (height (image-height asset))
+           (scale-for (max width height))
+           (scale (/ (- *cell-size* *cell-padding*) scale-for))
+           (scaled-cell-size (/ *cell-size* scale)))
+      (scale-canvas scale scale)
+      (draw-image
+       (vec2 (- (/ scaled-cell-size 2) (/ width 2))
+             (- (/ scaled-cell-size 2) (/ height 2)))
+       asset))))
+
+(defmethod place-hospital ((this sil-game) row col)
+  (if (null (hospital this))
+      (setf (hospital this) (make-instance 'hospital))
+      (setf (aref (cells this) (row (hospital this)) (col (hospital this))) nil))
+  (setf (row (hospital this)) row)
+  (setf (col (hospital this)) col)
+  (setf (aref (cells this) row col) (hospital this)))
+
 (defmethod gamekit:draw ((game sil-game))
+
+  ;; background color
+  (draw-rect (vec2 0 0)
+             *width*
+             *height*
+             :fill-paint *background-color*)
+
+  (draw-rect (vec2 *padding-left* *padding-bottom*)
+             (- *stage-width* (* *padding-left* 2))
+             (- *stage-height* (* *padding-bottom* 2))
+             :stroke-paint *grid-border-color*
+             :fill-paint nil
+             :thickness *grid-border-thickness*)
+
   (render (panel game))
+
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
     (render (grid game))
@@ -511,6 +546,7 @@
         (render-path game medic)))
     (render game)
 
+    ;; draw quarantine
     (when (and (quarantine-to game) (quarantine-from game))
       (let* ((corners (quarantine-corners game))
              (top-row (getf corners :top-row))
@@ -523,16 +559,9 @@
              (to-y (+ (* top-row *cell-size*) *cell-size*))
              (width (abs (- from-x to-x)))
              (height (abs (- from-y to-y))))
-        (when (not *once*)
-          (format t "cell size ~A ~%" *cell-size*)
-          (format t "quarantine-from ~A ~%" (quarantine-from game))
-          (format t "quarantine-to ~A ~%" (quarantine-to game))
-          (format t "corners ~A ~%" corners)
-          (format t "coords: ~A ~A -> ~A ~A ~%" from-x from-y to-x to-y)
-          (setf *once* T))
         (draw-rect (vec2 from-x from-y) width height
-                 :thickness 3
-                 :stroke-paint (vec3 0.9 0.1 0.1))))))
+                 :thickness *quarantine-border-thickness*
+                 :stroke-paint *quarantine-border-color*)))))
 
 (defmethod render ((game sil-game))
   (with-slots (cells) game
@@ -546,14 +575,18 @@
 (defmethod update-statistics ((game sil-game))
   (let ((persons (persons game))
         (alive 0)
+        (killers 0)
         (sick 0))
     (dolist (person persons)
+      (when (and (typep person 'killer) (not (locked person)))
+        (incf killers))
       (when (regular-person-p person)
-        (incf alive))
+        (incf alive)
         (when (sick person)
-            (incf sick)))
+          (incf sick))))
     (setf (getf (statistics game) :alive) alive)
-    (setf (getf (statistics game) :sick) sick)))
+    (setf (getf (statistics game) :sick) sick)
+    (setf (getf (statistics game) :killers) killers)))
 
 (defmethod act ((game sil-game))
   (dolist (person (persons game))

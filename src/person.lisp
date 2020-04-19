@@ -10,6 +10,7 @@
    (col :initform nil :accessor col)
    (health :initform 100 :accessor health)
    (sick :initform nil :accessor sick)
+   (gender :initform (nth (random 2) (list 'male 'female)) :accessor gender)
    (last-cough-time :initform nil :accessor last-cough-time)
    (last-move-time :initform (/ 1 (1+ (random 10))) :accessor last-move-time)))
 
@@ -35,9 +36,19 @@
   (setf (last-cough-time this) (real-time-seconds)))
 
 (defmethod move-person ((game sil-game) person to-row to-col)
+  (when (and (typep person 'killer) (locked person))
+    (return-from move-person))
+
   (let ((from-row (row person))
         (from-col (col person))
         (cells (cells game)))
+
+    (when (and (typep person 'killer)
+               (in-quarantine-p game from-row from-col)
+               (not (in-quarantine-p game to-row to-col)))
+      (lose-disguise game person)
+      (setf (last-kill-time person) (real-time-seconds)))
+     
     (setf (aref cells from-row from-col) nil)
     (setf (aref cells to-row to-col) person)
     (setf (row person) to-row)
@@ -85,5 +96,7 @@
              (- (/ scaled-cell-size 2) (/ height 2)))
        asset))))
 
-(defmethod render ((this person))
-  (render-avatar this :person))
+(defmethod render ((person person))
+  (if (equal (gender person) 'female)
+      (render-avatar person :person-female)
+      (render-avatar person :person-male)))

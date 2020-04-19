@@ -6,6 +6,7 @@
    (origin :accessor origin)
    (height :accessor height)
    (width :accessor width)
+   (status-image :initform nil :accessor status-image)
    (text-align :initarg :text-align :initform 'center :accessor text-align)
    (update :initform nil :initarg :update :accessor update)))
 
@@ -20,4 +21,12 @@
                           (width label)
                           *element-base-height*
                           (text label)
-                          (text-align label))))
+                          (text-align label))
+    (when (status-image label)
+      (let* ((text-height (text-height (text label)))
+             (scale (/ text-height (image-height (status-image label)))))
+        (scale-canvas scale scale)
+        (draw-image (vec2 (* (/ 1 scale)
+                             (- (width label) text-height))
+                          (/ (text-height (text label)) 2))
+                    (status-image label))))))
