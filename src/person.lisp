@@ -24,12 +24,14 @@
 
 (defmethod become-sick ((this person))
   (when (not (sick this))
+    (play :cough)
     (setf (last-cough-time this) (real-time-seconds))
     (setf (sick this) T)))
 
 (defmethod become-healthy ((this person))
   (setf (health this) 100)
-  (setf (sick this) nil))
+  (setf (sick this) nil)
+  (play :heal))
 
 (defmethod cough ((this person))
   (decf (health this) *sick-cough-damage*)

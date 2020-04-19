@@ -22,7 +22,12 @@
 (define-image :ok-sign "ok-sign.png")
 (define-image :not-ok-sign "not-ok-sign.png")
 
-(define-sound :death "death.ogg")
+(define-sound :death "sounds/death.wav")
+(define-sound :cough "sounds/cough.ogg")
+(define-sound :kill "sounds/kill.wav")
+(define-sound :lock "sounds/lock.ogg")
+(define-sound :heal "sounds/heal.wav")
+(define-sound :win "sounds/win.wav")
 
 (defvar *cursor-pos* (gamekit:vec2 0 0))
 
@@ -57,6 +62,7 @@
    (quarantine-to :accessor quarantine-to :initform nil)
    (start-time :accessor start-time :initform nil)
    (statistics :accessor statistics :initform nil)
+   (state :accessor state :initform 'in-progress)
    (panel :accessor panel
           :initform (make-instance 'panel
                                    :origin (vec2 *stage-width* 0)

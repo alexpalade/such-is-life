@@ -7,8 +7,10 @@
   ;; lock near killers
   (dolist (killer (get-near-persons-of-type game police 'killer))
     (when (and (not (disguised killer))
-               (not (locked killer))))
-      (setf (locked killer) t))
+               (not (locked killer)))
+      (setf (locked killer) t)
+      (play :lock)))
+
 
   ;; chase
   (when (and (state-p police 'chasing)

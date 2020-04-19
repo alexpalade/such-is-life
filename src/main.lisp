@@ -19,6 +19,8 @@
 
 (defmethod restart-game ((game sil-game))
 
+  (setf (state game) 'in-progress)
+
   (when *rows-adjusted*
     (setf *rows* *rows-adjusted*))
 
@@ -69,6 +71,7 @@
 
     (setf start-time (real-time-seconds))
 
+    (setf (hospital game) nil)
     (let ((random-cell (random-empty-cell game)))
       (place-hospital game (first random-cell) (second random-cell)))
 
@@ -494,12 +497,11 @@
   (when (and (typep person 'medic)
              (state-p person 'grab-sick)
              (not (null (target person))))
-    (format t "~& HELP ~A ~%" (target person))
     (setf (state (target person)) 'wander))
 
   (remove-person this person)
   (move-person this killer (row person) (col person))
-  (play :death))
+  (play :kill))
 
 (defclass hospital ()
   ((row :initarg row :accessor row)
@@ -594,10 +596,21 @@
     (setf (getf (statistics game) :sick) sick)
     (setf (getf (statistics game) :killers) killers)))
 
+(defmethod check-win-condition ((game sil-game))
+  (let ((sick (getf (statistics game) :sick))
+        (killers (getf (statistics game) :killers)))
+    (when (and
+           (equal (state game) 'in-progress)
+           (zerop sick)
+           (zerop killers))
+      (setf (state game) 'game-over)
+      (play :win))))
+
 (defmethod act ((game sil-game))
   (dolist (person (persons game))
     (tick game person))
   (update-statistics game)
+  (check-win-condition game)
   (panel-act game))
 
 (defmethod run ()
