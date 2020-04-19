@@ -323,12 +323,17 @@
   "Return seconds since certain point of time"
   (/ (get-internal-real-time) internal-time-units-per-second))
 
-(defmethod get-sick-person ((this sil-game))
-  (dolist (p (alexandria:shuffle (persons this)))
-    (when (and (not (and (typep p 'killer) (locked p)))
-               (sick p)
-               (state-p p 'wander))
-      (return-from get-sick-person p))))
+(defmethod get-sick-person ((game sil-game) from-row from-col)
+  (let* ((closest-distance (* *rows* *cols*))
+         (closest-sick nil))
+    (dolist (p (persons game))
+      (when (and (not (and (typep p 'killer) (locked p)))
+                 (sick p)
+                 (state-p p 'wander))
+        (let ((distance (distance-between from-row from-col (row p) (col p))))
+          (when (< distance closest-distance)
+            (setf closest-distance distance)
+            (setf closest-sick p)))))))
 
 (defmethod quarantine-corners ((this sil-game))
   (when (and (quarantine-from this)
