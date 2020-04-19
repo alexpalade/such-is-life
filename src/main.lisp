@@ -333,7 +333,8 @@
         (let ((distance (distance-between from-row from-col (row p) (col p))))
           (when (< distance closest-distance)
             (setf closest-distance distance)
-            (setf closest-sick p)))))))
+            (setf closest-sick p)))))
+    closest-sick))
 
 (defmethod quarantine-corners ((this sil-game))
   (when (and (quarantine-from this)
