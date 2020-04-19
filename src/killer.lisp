@@ -27,16 +27,13 @@
 
 (defmethod lose-disguise ((game sil-game) (killer killer))
   (when (disguised killer)
-    (let ((all-police (get-all-persons-of-type game 'police))
-          (chaser nil))
-      (setf all-police (remove-if (lambda (x) (state-p x 'chasing)) all-police))
-      (when all-police
-        (setf chaser (random-nth all-police))
+    (let ((chaser (get-closest-police game (row killer) (col killer))))
+      (when chaser
         (setf (target chaser) killer)
         (setf (state chaser) 'chasing)
+        (setf (rest-time chaser) 0)
         (setf (destination chaser) (list (row killer) (col killer)))
         (update-path-person game chaser))))
-
   (setf (disguised killer) nil))
 
 (defmethod time-since-last-kill ((this killer))
