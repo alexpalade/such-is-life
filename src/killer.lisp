@@ -1,12 +1,12 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass killer (person)
   ((last-kill-time :initform nil :accessor last-kill-time)))
 
 ;(defmethod act ((this killer))
-;  (get-neighbors sih this)
+;  (get-neighbors sil-game this)
 
-(defmethod tick :before ((game sih) (killer killer))
+(defmethod tick :before ((game sil-game) (killer killer))
   (when (and
          (< (random 100) 5)
          (kill-cooldown-ok killer))

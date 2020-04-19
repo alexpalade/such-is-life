@@ -1,11 +1,11 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defmacro random-nth (lst)
   `(when ,lst
      (nth (random (length ,lst)) ,lst)))
 
 (defun asset-path (pathname)
-  (asdf:system-relative-pathname :sih (merge-pathnames pathname "assets/")))
+  (asdf:system-relative-pathname :sil-game (merge-pathnames pathname "assets/")))
 
 (defun valid-cell (row col num-rows num-cols)
   (and (>= row 0)

@@ -1,18 +1,23 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
+
+(defparameter *population-percentage* 5)
+(defparameter *sick-percentage* 10)
+(defparameter *medics-count* 3)
+(defparameter *police-count* 2)
+(defparameter *killers-count* 2)
+(defparameter *sick-cough-frequency* 5)
+(defparameter *sick-cough-damage* 1)
 
 (defparameter *rows-adjusted* nil)
 (defparameter *population-percentage-adjusted* nil)
-(defparameter *population-percentage* 5)
 (defparameter *sick-percentage-adjusted* nil)
-(defparameter *sick-percentage* 10)
 (defparameter *medics-count-adjusted* nil)
-(defparameter *medics-count* 3)
 (defparameter *police-count-adjusted* nil)
-(defparameter *police-count* 2)
 (defparameter *killers-count-adjusted* nil)
-(defparameter *killers-count* 2)
+(defparameter *sick-cough-frequency-adjusted* nil)
+(defparameter *sick-cough-damage-adjusted* nil)
 
-(defmethod restart-game ((game sih))
+(defmethod restart-game ((game sil-game))
 
   (when *rows-adjusted*
     (setf *rows* *rows-adjusted*))
@@ -32,6 +37,12 @@
   (when *killers-count-adjusted*
     (setf *killers-count* *killers-count-adjusted*))
 
+  (when *sick-cough-damage-adjusted*
+    (setf *sick-cough-damage* *sick-cough-damage-adjusted*))
+
+  (when *sick-cough-frequency-adjusted*
+    (setf *sick-cough-frequency* *sick-cough-frequency-adjusted*))
+
   ;; recalculating stuff. yuck!
   (setf *cell-size* (/ *grid-height* *rows*))
   (setf *cell-half* (/ *cell-size* 2))
@@ -49,12 +60,14 @@
         (a (alexandria:clamp (/ 0.2 *grid-thickness*) 0 1)))
     (setf *grid-color* (vec4 r g b a)))
 
-  (with-slots (grid cells persons quarantine-from quarantine-to) game
+  (with-slots (grid cells persons quarantine-from quarantine-to start-time statistics) game
     (setf grid (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*))
     (setf cells (make-array (list *rows* *cols*) :initial-element nil))
     (setf persons nil)
     (setf quarantine-from nil)
     (setf quarantine-to nil)
+
+    (setf start-time (real-time-seconds))
 
     (place-hospital game 0 0)
 
@@ -64,11 +77,20 @@
            (sick-percentage (/ *sick-percentage* 100))
            (how-many-sick (round (* sick-percentage how-many-persons))))
       (spawn-persons game 'person how-many-persons)
-      (format t "~& perc = ~A, ~A for ~A cells ~%" population-percentage how-many-persons num-cells)
-      (format t "~& % = ~A ~%" sick-percentage)
-      (format t "~& ~A out of ~A ~%" how-many-sick how-many-persons)
+      (setf (getf statistics :alive) how-many-persons)
+      (setf (getf statistics :dead) 0)
+      (setf (getf statistics :sick) how-many-sick)
+
+      ;; have at least one sick person
+      (when (plusp sick-percentage)
+        (setf how-many-sick (max 1 how-many-sick)))
+
       (dotimes (n how-many-sick)
-        (become-sick (nth n (persons game)))))
+        (let ((person (nth n (persons game))))
+          (become-sick person)
+          ;; randomize a bit, so they don't all die at once
+          (setf (last-cough-time person)
+                (+ (real-time-seconds) (/ (random 2000) 1000))))))
 
     (spawn-persons game 'police *police-count*)
 
@@ -76,61 +98,119 @@
 
     (spawn-persons game 'medic *medics-count*)))
 
-(defmethod post-initialize ((game sih))
+(defmethod update-label-alive ((game sil-game) (label label))
+  (setf (text label)
+        (concatenate 'string
+                      "Alive: "
+                      (write-to-string
+                       (getf (statistics game) :alive)))))
+
+(defmethod update-label-dead ((game sil-game) (label label))
+  (setf (text label)
+        (concatenate 'string
+                      "Dead: "
+                      (write-to-string
+                       (getf (statistics game) :dead)))))
+
+(defmethod update-label-sick ((game sil-game) (label label))
+  (setf (text label)
+        (concatenate 'string
+                      "Sick: "
+                      (write-to-string
+                       (getf (statistics game) :sick)))))
+
+(defmethod update-status-bar ((game sil-game) (bar status-bar))
+  (setf (alive bar) (getf (statistics game) :alive))
+  (setf (sick bar) (getf (statistics game) :sick))
+  (setf (dead bar) (getf (statistics game) :dead)))
+
+(defmethod post-initialize ((game sil-game))
   (restart-game game)
 
-  (let ((elements (list
-                   (make-instance 'label
-                                  :text "Such is Life"
-                                  :action (lambda ()
-                                            (restart-game game)))
-                   (make-instance 'button
-                                  :text "Restart"
-                                  :action (lambda ()
-                                            (restart-game game)))
-                   (make-instance 'adjuster
-                                  :allowed-values '(10 15 20 25 30 40 50)
-                                  :current-value *rows*
-                                  :text "Size"
-                                  :action (lambda (value)
-                                            (setf *rows-adjusted* value)))
-
-                   (make-instance 'adjuster
-                                  :allowed-values '(1 2 3 4 5 7 10 15 20 30)
-                                  :current-value *population-percentage*
-                                  :text "Population %"
-                                  :action (lambda (value)
-                                            (setf *population-percentage-adjusted* value)))
-
-                   (make-instance 'adjuster
-                                  :allowed-values '(1 5 10 15 20 30 40 50 60 70 80 90 100)
-                                  :current-value *sick-percentage*
-                                  :text "Sick %"
-                                  :action (lambda (value)
-                                            (setf *sick-percentage-adjusted* value)))
-
-                   (make-instance 'adjuster
-                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
-                                  :current-value *police-count*
-                                  :text "Police"
-                                  :action (lambda (value)
-                                            (setf *police-count-adjusted* value)))
-
-                   (make-instance 'adjuster
-                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
-                                  :current-value *medics-count*
-                                  :text "Medics"
-                                  :action (lambda (value)
-                                            (setf *medics-count* value)))
-
-                   (make-instance 'adjuster
-                                  :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
-                                  :current-value *killers-count*
-                                  :text "Killers"
-                                  :action (lambda (value)
-                                            (setf *killers-count-adjusted* value))))))
-    (dolist (element elements)
-      (add-element (panel game) element)))
+  ;; UI elements
+  (let* ((panel (panel game))
+         (title (make-instance 'label :text "Such Is Life")
+                                         :no-padding t)
+         (subtitle (make-instance 'label :text "Lisp Game Jam"
+                                         :no-padding t))
+         (alive (make-instance 'label :text "Alive: ?"
+                                      :text-align 'left
+                                      :update #'update-label-alive))
+         (dead (make-instance 'label :text "Dead: ?"
+                                     :no-padding t
+                                     :text-align 'left
+                                     :update #'update-label-dead))
+         (sick (make-instance 'label :text "Sick: ?"
+                                     :no-padding t
+                                     :text-align 'left
+                                     :update #'update-label-sick))
+         (status-bar (make-instance 'status-bar
+                                     :no-padding t
+                                     :update #'update-status-bar))
+         (restart-button (make-instance 'button :text "Restart"
+                                                :action(lambda () (restart-game game))))
+         (size-adjuster (make-instance 'adjuster
+                                       :allowed-values '(10 15 20 25 30 40 50)
+                                       :current-value *rows*
+                                       :text "Size"
+                                       :action (lambda (value) (setf *rows-adjusted* value))))
+         (population-adjuster (make-instance 'adjuster
+                                             :allowed-values '(1 2 3 4 5 7 10 15 20 30 40)
+                                             :current-value *population-percentage*
+                                             :text "People %"
+                                             :action (lambda (value) (setf *population-percentage-adjusted* value))))
+         (sick-adjuster (make-instance 'adjuster
+                                       :allowed-values '(0 1 5 10 15 20 30 40 50 60 70 80 90 100)
+                                       :current-value *sick-percentage*
+                                       :text "Sick %"
+                                       :action (lambda (value) (setf *sick-percentage-adjusted* value))))
+         (police-adjuster (make-instance 'adjuster
+                                         :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                         :current-value *police-count*
+                                         :text "Police"
+                                         :action (lambda (value) (setf *police-count-adjusted* value))))
+         (medics-adjuster (make-instance 'adjuster
+                                         :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                         :current-value *medics-count*
+                                         :text "Medics"
+                                         :action (lambda (value) (setf *medics-count* value))))
+         (killers-adjuster (make-instance 'adjuster
+                                          :allowed-values '(0 1 2 3 4 5 6 7 8 9 10)
+                                          :current-value *killers-count*
+                                          :text "Killers"
+                                          :action (lambda (value) (setf *killers-count-adjusted* value))))
+         (cough-frequency-adjuster (make-instance 'adjuster
+                                         :allowed-values '(0.5 1 2 3 4 5 6 7 8 9 10)
+                                         :current-value *sick-cough-frequency*
+                                         :text "Per sec."
+                                         :action (lambda (value) (setf *sick-cough-frequency-adjusted* value))))
+         (cough-damage-adjuster (make-instance 'adjuster
+                                         :allowed-values '(0.1 0.5 1 2 5 10)
+                                         :current-value *sick-cough-damage*
+                                         :text "Damage"
+                                         :action (lambda (value) (setf *sick-cough-damage-adjusted* value)))))
+    (add-element panel title)
+    (add-element panel subtitle)
+    (add-element panel (make-instance 'separator))
+    (add-element panel (make-instance 'label :text "Status"))
+    (add-element panel alive)
+    (add-element panel dead)
+    (add-element panel sick)
+    (add-element panel status-bar)
+    (add-element panel (make-instance 'separator))
+    (add-element panel (make-instance 'label :text "Settings"))
+    (add-element panel size-adjuster)
+    (add-element panel population-adjuster)
+    (add-element panel sick-adjuster)
+    (add-element panel medics-adjuster)
+    (add-element panel police-adjuster)
+    (add-element panel killers-adjuster)
+    (add-element panel (make-instance 'separator))
+    (add-element panel (make-instance 'label :text "Coughs..."))
+    (add-element panel cough-frequency-adjuster)
+    (add-element panel cough-damage-adjuster)
+    (add-element panel (make-instance 'separator))
+    (add-element panel restart-button))
 
   (bind-button :escape :pressed #'gamekit:stop)
   (bind-button :q :pressed #'gamekit:stop)
@@ -160,17 +240,18 @@
          (row (floor (/ (- y-mouse *padding-bottom*) *cell-size*))))
     (list row col)))
 
-(defmethod handle-cursor-move ((this sih))
+(defmethod handle-cursor-move ((this sil-game))
   (when *area-dragging-p*
     (setf (quarantine-to this) (cursor-to-cell))))
 
-(defmethod handle-click-cell ((this sih) row col)
+(defmethod handle-click-cell ((this sil-game) row col)
   (setf *once* nil)
   (when (cell-valid-p this row col)
     (let ((obj (aref (cells this) row col)))
       (format t "Cell: ~A x ~A ~%" row col)
       (when (not (cell-free-p this row col))
         (when (person-p obj)
+          (format t "Yes: ~A~%" (col (aref (cells this) row col)))
           (format t "State: ~A~%" (state (aref (cells this) row col))))
         (when (typep obj 'medic)
           (format t "Path: ~A~%" (path obj))))
@@ -193,7 +274,7 @@
                                         ;  (format t "~A~%" (get-near-persons this (get-cell this row col)))
                                         ;  (play :grab))
 
-(defmethod get-empty-cells ((this sih))
+(defmethod get-empty-cells ((this sil-game))
   (let ((result '()))
     (dotimes (row *rows*)
       (dotimes (col *cols*)
@@ -201,10 +282,10 @@
           (push (list row col) result))))
     result))
 
-(defmethod random-empty-cell ((this sih))
+(defmethod random-empty-cell ((this sil-game))
   (random-nth (get-empty-cells this)))
 
-(defmethod spawn-persons ((this sih) type &optional (how-many 1))
+(defmethod spawn-persons ((this sil-game) type &optional (how-many 1))
   (format t "~& Spawning person type ~A ~%" type)
   (dotimes (n how-many)
     (spawn-person this type)))
@@ -220,17 +301,14 @@
            (height (image-height asset))
            (scale-for (max width height))
            (scale (/ (- *cell-size* *cell-padding*) scale-for))
-           (scaled-cell-size (/ *cell-size* scale))
-           (scale-no-padding (/ *cell-size* scale-for))
-           (scaled-cell-size-no-padding (/ *cell-size* scale-no-padding)))
-
+           (scaled-cell-size (/ *cell-size* scale)))
       (scale-canvas scale scale)
       (draw-image
        (vec2 (- (/ scaled-cell-size 2) (/ width 2))
              (- (/ scaled-cell-size 2) (/ height 2)))
        asset))))
 
-(defmethod place-hospital ((this sih) row col)
+(defmethod place-hospital ((this sil-game) row col)
   (if (null (hospital this))
       (setf (hospital this) (make-instance 'hospital))
       (setf (aref (cells this) (row (hospital this)) (col (hospital this))) nil))
@@ -238,7 +316,7 @@
   (setf (col (hospital this)) col)
   (setf (aref (cells this) row col) (hospital this)))
 
-(defmethod spawn-person ((this sih) type)
+(defmethod spawn-person ((this sil-game) type)
   (let ((person (make-instance type))
         (free-pos (random-empty-cell this)))
     (when (null free-pos)
@@ -255,20 +333,17 @@
 (defun translate-canvas-vec (vec)
   (translate-canvas (x vec) (y vec)))
 
-(defun draw-time ()
-  (draw-text (write-to-string (coerce (real-time-seconds) 'float)) (vec2 30 500)))
-
 (defun real-time-seconds ()
   "Return seconds since certain point of time"
   (/ (get-internal-real-time) internal-time-units-per-second))
 
-(defmethod get-sick-person ((this sih))
+(defmethod get-sick-person ((this sil-game))
   (dolist (p (alexandria:shuffle (persons this)))
     (when (and (sick p)
                (state-p p 'wander))
       (return-from get-sick-person p))))
 
-(defmethod quarantine-corners ((this sih))
+(defmethod quarantine-corners ((this sil-game))
   (when (and (quarantine-from this)
              (quarantine-to this))
     (let* ((from-row (first (quarantine-from this)))
@@ -284,10 +359,10 @@
             :top-row top-row
             :bottom-row bottom-row))))
 
-(defmethod in-quarantine-person-p ((this sih) (person person))
+(defmethod in-quarantine-person-p ((this sil-game) (person person))
   (in-quarantine-p this (row person) (col person)))
 
-(defmethod in-quarantine-p ((this sih) row col)
+(defmethod in-quarantine-p ((this sil-game) row col)
   (when (and (quarantine-from this)
              (quarantine-to this))
     (let* ((corners (quarantine-corners this))
@@ -300,10 +375,10 @@
            (>= col left-col)
            (<= col right-col)))))
 
-(defmethod reached-target-p ((game sih) (person person))
+(defmethod reached-target-p ((game sil-game) (person person))
   (find (target person) (get-near-persons game person)))
 
-(defmethod render-path ((game sih) (p person))
+(defmethod render-path ((game sil-game) (p person))
   (when (null (path p))
     (return-from render-path))
   (dolist (node (path p))
@@ -312,10 +387,10 @@
            (x (+ (* col *cell-size*) *cell-half*))
            (y (+ (* row *cell-size*) *cell-half*)))
       (draw-circle (vec2 x y)
-                   (/ *cell-size* 15)
-                   :fill-paint *black*))))
+                   (/ *cell-size* 30)
+                   :fill-paint *path-color*))))
 
-(defmethod update-path-person ((game sih) (p person))
+(defmethod update-path-person ((game sil-game) (p person))
   (setf
    (path p)
    (find-path game
@@ -327,7 +402,7 @@
 (defun cells-adjacent-p (row1 col1 row2 col2)
   (<= (distance-between row1 col1 row2 col2) 1))
 
-(defmethod get-cell ((this sih) row col)
+(defmethod get-cell ((this sil-game) row col)
   (when (cell-valid-p this row col)
     (aref (cells this) row col)))
 
@@ -336,7 +411,7 @@
   (get-near-cells (row person) (col person) *rows* *cols*))
 
 ;; retuns a list of persons
-(defmethod get-near-persons ((game sih) (person person))
+(defmethod get-near-persons ((game sil-game) (person person))
   (let ((near-cells (get-near-cells-person person))
         (cells (cells game)))
     (remove-if
@@ -348,38 +423,38 @@
 (defun person-p (o)
   (typep o 'person))
 
-(defmethod get-near-persons-of-type ((game sih) (person person) type)
+(defmethod get-near-persons-of-type ((game sil-game) (person person) type)
   (remove-if-not
    (lambda (p) (typep p type))
    (get-near-persons game person)))
 
-(defmethod get-near-persons-not-of-type ((game sih) (person person) type)
+(defmethod get-near-persons-not-of-type ((game sil-game) (person person) type)
   (remove-if
    (lambda (p) (typep p type))
    (get-near-persons game person)))
 
-(defmethod get-near-sick-persons ((game sih) (person person))
+(defmethod get-near-sick-persons ((game sil-game) (person person))
   (remove-if-not
    (lambda (p) (sick p))
    (get-near-persons game person)))
 
-(defmethod cell-valid-p ((this sih) row col)
+(defmethod cell-valid-p ((this sil-game) row col)
   (and (>= row 0) (>= col 0) (< row *rows*) (< col *cols*)))
 
-(defmethod cell-free-p ((this sih) row col)
+(defmethod cell-free-p ((this sil-game) row col)
   (cell-free-ignore-p this row col nil))
 
-(defmethod cell-free-ignore-p ((this sih) row col ignore-type)
+(defmethod cell-free-ignore-p ((this sil-game) row col ignore-type)
   (let ((cell (aref (cells this) row col)))
     (if (or (null cell)
             (and ignore-type (equal (type-of cell) ignore-type)))
         T
         nil)))
 
-(defmethod get-near-free-cells ((this sih) row col)
+(defmethod get-near-free-cells ((this sil-game) row col)
   (get-near-free-cells-ignore this row col nil))
 
-(defmethod get-near-free-cells-ignore ((this sih) row col ignore-type)
+(defmethod get-near-free-cells-ignore ((this sil-game) row col ignore-type)
   (let* ((result-cells '())
          (near-cells (get-near-cells row col *rows* *cols*)))
     (dolist (try-cell near-cells)
@@ -389,10 +464,10 @@
         (push try-cell result-cells)))
     result-cells))
 
-(defmethod get-near-free-cells-person ((this sih) person)
+(defmethod get-near-free-cells-person ((this sil-game) person)
   (get-near-free-cells this (row person) (col person)))
 
-(defmethod get-random-move-cell ((this sih) person)
+(defmethod get-random-move-cell ((this sil-game) person)
   (let* ((cells (get-near-free-cells-person this person)))
     (when (and (in-quarantine-person-p this person)
                (regular-person-p person))
@@ -404,33 +479,36 @@
         (random-nth cells)
         nil)))
 
-(defmethod get-all-persons-of-type ((this sih) type)
+(defmethod get-all-persons-of-type ((this sil-game) type)
   (remove-if-not
    (lambda (p) (typep p type))
    (persons this)))
 
-(defmethod get-killers ((this sih))
+(defmethod get-killers ((this sil-game))
   (get-all-persons-of-type this 'killer))
 
-(defmethod get-medics ((this sih))
+(defmethod get-medics ((this sil-game))
   (get-all-persons-of-type this 'medic))
 
-(defmethod remove-person ((this sih) person)
-  (setf (aref (cells this) (row person) (col person)) nil)
-  (setf (persons this) (remove person (persons this))))
+(defmethod remove-person ((game sil-game) person)
+  (when (regular-person-p person)
+    (incf (getf (statistics game) :dead)))
+  (setf (aref (cells game) (row person) (col person)) nil)
+  (setf (persons game) (remove person (persons game))))
 
-(defmethod do-kill ((this sih) killer person)
+(defmethod do-kill ((this sil-game) killer person)
   (remove-person this person)
   (move-person this killer (row person) (col person))
   (play :death))
 
-(defmethod gamekit:draw ((game sih))
+(defmethod gamekit:draw ((game sil-game))
   (render (panel game))
   (with-pushed-canvas ()
     (translate-canvas *padding-left* *padding-bottom*)
     (render (grid game))
     (dolist (medic (get-medics game))
-      (render-path game medic))
+      (when (not (state-p medic 'wander))
+        (render-path game medic)))
     (render game)
 
     (when (and (quarantine-to game) (quarantine-from game))
@@ -456,8 +534,7 @@
                  :thickness 3
                  :stroke-paint (vec3 0.9 0.1 0.1))))))
 
-(defmethod render ((game sih))
-  (draw-time)
+(defmethod render ((game sil-game))
   (with-slots (cells) game
     (dotimes (row *rows*)
       (dotimes (col *cols*)
@@ -466,9 +543,23 @@
             (translate-canvas-vec (cell-pos row col))
             (render (aref cells row col))))))))
 
-(defmethod act ((game sih))
+(defmethod update-statistics ((game sil-game))
+  (let ((persons (persons game))
+        (alive 0)
+        (sick 0))
+    (dolist (person persons)
+      (when (regular-person-p person)
+        (incf alive))
+        (when (sick person)
+            (incf sick)))
+    (setf (getf (statistics game) :alive) alive)
+    (setf (getf (statistics game) :sick) sick)))
+
+(defmethod act ((game sil-game))
   (dolist (person (persons game))
-    (tick game person)))
+    (tick game person))
+  (update-statistics game)
+  (panel-act game))
 
 (defmethod run ()
-  (gamekit:start 'sih))
+  (gamekit:start 'sil-game))

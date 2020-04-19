@@ -1,4 +1,4 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass button (element)
   ())
@@ -6,7 +6,7 @@
 (defmethod render ((button button))
   (with-pushed-canvas ()
     (translate-canvas-vec (origin button))
-    (render-button-with-text (vec2 0 0)
+    (draw-button-with-text (vec2 0 0)
                              (width button)
                              *element-base-height*
                              (text button)

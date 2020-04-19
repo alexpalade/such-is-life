@@ -1,4 +1,4 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass police (person) ())
 

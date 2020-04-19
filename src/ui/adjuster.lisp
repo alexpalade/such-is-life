@@ -1,45 +1,50 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
+
+(defparameter *decrease-button-offset-x* 80)
 
 (defclass adjuster (element)
   ((allowed-values :initarg :allowed-values :initform (error "Adjuster element needs allowed values") :accessor allowed-values)
    (current-value :initarg :current-value :initform (error "Adjuster element needs current value") :accessor current-value)
    (text :initarg :text :initform "Some text" :accessor text)
-   (row-span :initform 2 :accessor row-span)
+   (row-span :initform 1 :accessor row-span)
    (action :initform nil :initarg action :accessor action)))
 
 (defmethod render ((a adjuster))
   (with-pushed-canvas ()
     (translate-canvas-vec (origin a))
 
-    (render-text-centered (vec2 0 (* (1- (row-span a)) *element-base-height*))
-                          (width a)
-                          *element-base-height*
-                          (text a))
+    (draw-text-left (vec2 0 0)
+                    (width a)
+                    *element-base-height*
+                    (text a))
 
-    (render-button-with-text (vec2 0 0)
-                             *element-base-height*
-                             *element-base-height*
-                             "-"
-                             *button-color*)
-
-    (render-button-with-text (vec2 (- (width a) *element-base-height*) 0)
-                             *element-base-height*
-                             *element-base-height*
+    (draw-round-button-with-text (vec2 (- (width a) *element-base-height*) 0)
+                             (/ *element-base-height* 2)
                              "+"
                              *button-color*)
 
-    (render-text-centered (vec2 0 0)
-                          (width a)
+    (let* ((text (write-to-string (current-value a)))
+           (text-offset-x (+ *decrease-button-offset-x* *element-base-height*)))
+      (draw-text-centered (vec2 text-offset-x 0)
+                          (- (- (width a) *element-base-height*)
+                             text-offset-x)
                           *element-base-height*
-                          (write-to-string (current-value a)))))
+                          text)
+
+      (draw-round-button-with-text (vec2 *decrease-button-offset-x*
+                                   0)
+                             (/ *element-base-height* 2)
+                             "-"
+                             *button-color*))))
+
 
 (defmethod click-event ((this adjuster) cursor-pos)
   (let ((x (x cursor-pos))
         (y (y cursor-pos)))
     (when
         (and
-         (> x (x (origin this)))
-         (< x (+ (x (origin this)) *element-base-height*))
+         (> x (+ (x (origin this)) *decrease-button-offset-x*))
+         (< x (+ (x (origin this)) *decrease-button-offset-x* *element-base-height*))
          (> y (y (origin this)))
          (< y (+ (y (origin this)) *element-base-height*)))
       (previous-value this))

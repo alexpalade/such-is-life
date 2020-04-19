@@ -1,7 +1,7 @@
 (cl:pushnew :bodge-gl2 cl:*features*)
 
-(asdf:defsystem :society-is-hard
-  :description "Society Is Hard Game"
+(asdf:defsystem :such-is-life
+  :description "Such Is Life Game"
   :author "Alexandru Palade"
   :license "GPLv3"
   :version "0.0.1"
@@ -10,12 +10,14 @@
   :pathname "src/"
   :components ((:file "package")
                (:file "parameters")
-               (:file "sih")
+               (:file "sil-game")
                (:file "math")
                (:file "ui/button")
                (:file "ui/adjuster")
                (:file "ui/label")
                (:file "ui/panel")
+               (:file "ui/status-bar")
+               (:file "ui/separator")
                (:file "grid")
                (:file "util")
                (:file "pathfinding")

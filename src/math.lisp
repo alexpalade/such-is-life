@@ -1,4 +1,4 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defun rotate-vec (vec angle)
   (vec2 (- (* (x vec) (cos angle)) (* (y vec) (sin angle)))

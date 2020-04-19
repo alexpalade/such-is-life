@@ -1,4 +1,4 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass grid ()
   ((rows :initform (error "grid needs row count") :initarg :rows :reader rows)

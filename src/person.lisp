@@ -1,4 +1,4 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass person ()
   ((destination :initform nil :accessor destination)
@@ -10,7 +10,6 @@
    (col :initform nil :accessor col)
    (health :initform 100 :accessor health)
    (sick :initform nil :accessor sick)
-   (medicine :initform 0 :accessor medicine)
    (last-cough-time :initform nil :accessor last-cough-time)
    (last-move-time :initform (/ 1 (1+ (random 10))) :accessor last-move-time)))
 
@@ -19,12 +18,12 @@
 
 (defmethod regular-person-p ((person person))
   (not (or (typep person 'police)
+           (typep person 'killer)
            (typep person 'medic))))
 
 (defmethod become-sick ((this person))
   (when (not (sick this))
     (setf (last-cough-time this) (real-time-seconds))
-    (setf (medicine this) 0)
     (setf (sick this) T)))
 
 (defmethod become-healthy ((this person))
@@ -32,10 +31,10 @@
   (setf (sick this) nil))
 
 (defmethod cough ((this person))
-  (decf (health this) 0.5)
+  (decf (health this) *sick-cough-damage*)
   (setf (last-cough-time this) (real-time-seconds)))
 
-(defmethod move-person ((game sih) person to-row to-col)
+(defmethod move-person ((game sil-game) person to-row to-col)
   (let ((from-row (row person))
         (from-col (col person))
         (cells (cells game)))
@@ -45,13 +44,14 @@
     (setf (col person) to-col)
     (setf (last-move-time person) (real-time-seconds))))
 
-(defmethod tick ((game sih) (person person))
+(defmethod tick ((game sil-game) (person person))
   (when (sick person)
-    (when (> (- (real-time-seconds) (last-cough-time person)) 0.2)
+    (when (> (- (real-time-seconds) (last-cough-time person)) (/ 1 *sick-cough-frequency*))
       (cough person)
       (when (<= (health person) 0)
         (remove-person game person)
-        (play :death)))
+        (play :death)
+        (return-from tick)))
     (dolist (near-person (get-near-persons game person))
       (when (= 0 (random 500))
         (become-sick near-person))))
@@ -73,9 +73,7 @@
            (height (image-height asset))
            (scale-for (max width height))
            (scale (/ (- *cell-size* *cell-padding*) scale-for))
-           (scaled-cell-size (/ *cell-size* scale))
-           (scale-no-padding (/ *cell-size* scale-for))
-           (scaled-cell-size-no-padding (/ *cell-size* scale-no-padding)))
+           (scaled-cell-size (/ *cell-size* scale)))
       (when (sick this)
         (let ((alpha (+ 0.5 (- 0.5 (/ (health this) 100)))))
           (draw-rect (vec2 0 0) *cell-size* *cell-size*

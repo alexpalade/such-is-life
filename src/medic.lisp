@@ -1,11 +1,11 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 (defclass medic (person) ())
 
 (defmethod render ((this medic))
   (render-avatar this :medic))
 
-(defmethod tick ((game sih) (medic medic))
+(defmethod tick ((game sil-game) (medic medic))
   ;; medic is idle, take a patient
   (when (state-p medic 'wander)
     (let ((sick-person (get-sick-person game)))
@@ -17,6 +17,7 @@
             (setf (target medic) sick-person)
             (setf (state medic) 'grab-sick))
           (call-next-method))))
+
   ;; medic is going for patient
   (when (and (state-p medic 'grab-sick)
              (> (- (real-time-seconds) (last-move-time medic)) (rest-time medic)))
@@ -47,6 +48,7 @@
               (setf (rest-time medic) 0.3)
               (move-person game medic to-row to-col))
             (update-path-person game medic)))))
+
   ;; medic is taking someone to the hospital
   (when (and (state-p medic 'take-to-hospital)
              (> (- (real-time-seconds) (last-move-time medic)) (rest-time medic)))

@@ -1,7 +1,7 @@
-(in-package :sih)
+(in-package :sil-game)
 
 ;; g, h, f represent the cost values
-(defmethod find-path ((game sih) from-row from-col to-row to-col)
+(defmethod find-path ((game sil-game) from-row from-col to-row to-col)
   (let* ((result nil)
          (count 0)
          (next '())

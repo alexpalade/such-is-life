@@ -1,7 +1,7 @@
-(cl:in-package :sih)
+(cl:in-package :sil-game)
 
 ;; resouces
-(register-resource-package :keyword (asdf:system-relative-pathname :society-is-hard "assets/"))
+(register-resource-package :keyword (asdf:system-relative-pathname :such-is-life "assets/"))
 
 (define-image :person "person.png")
 (define-image :police "police.png")
@@ -42,13 +42,15 @@
 
 (defparameter *once* nil)
 
-(gamekit:defgame sih ()
+(gamekit:defgame sil-game ()
   ((grid :initform (make-instance 'grid :rows *rows* :cols *cols* :cell-size *cell-size*) :accessor grid)
    (persons :initform '() :accessor persons)
    (cells :accessor cells)
    (hospital :accessor hospital :initform nil)
    (quarantine-from :accessor quarantine-from :initform nil)
    (quarantine-to :accessor quarantine-to :initform nil)
+   (start-time :accessor start-time :initform nil)
+   (statistics :accessor statistics :initform nil)
    (panel :accessor panel
           :initform (make-instance 'panel
                                    :origin (vec2 *stage-width* 0)
