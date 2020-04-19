@@ -30,7 +30,7 @@
              (to-col (second next-cell)))
         (if (and to-row to-col (cell-free-p game to-row to-col))
             (progn
-              (setf (rest-time police) 0.3)
+              (setf (rest-time police) 0.5)
               (move-person game police to-row to-col))
             (update-path-person game police))))))
 
