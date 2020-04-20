@@ -12,7 +12,7 @@ Run one of the binary builds from the [latest release](https://github.com/alexpa
 Clone or link this repository into ~/quicklisp/local-projects/.
 
 ``` common-lisp
-(ql-dist:install-dist "http://bodge.borodust.org/dist/org.borodust.bodge.testing.txt")
+(ql-dist:install-dist "http://bodge.borodust.org/dist/org.borodust.bodge.txt")
 (ql:update-all-dists)
 
 (ql:quickload :such-is-life)
