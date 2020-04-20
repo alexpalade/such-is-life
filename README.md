@@ -29,9 +29,8 @@ Clone or link this repository into ~/quicklisp/local-projects/.
 Try to save as many people, or just try out various settings.
 
 * *Medics* bring people to the hospital to cure them.
-* *Police officers* lock up the undisguised killers.
-* *The killers* attack regular people.
-* *The virus* has no antidote.
+* *Police officers* lock up the undisguised *killers*.
+* *The virus* infects everyone and has no antidote.
 
 Hints:
 * Move the hospital when the area gets too crowded.
