@@ -12,7 +12,7 @@ Run one of the binary builds from the [latest release](https://github.com/alexpa
 Clone or link this repository into ~/quicklisp/local-projects/.
 
 ``` common-lisp
-(ql-dist:install-dist "http://bodge.borodust.org/dist/org.borodust.bodge.testing.txt")
+(ql-dist:install-dist "http://bodge.borodust.org/dist/org.borodust.bodge.txt")
 (ql:update-all-dists)
 
 (ql:quickload :such-is-life)
@@ -45,6 +45,9 @@ Hints:
 ## Credits
 
 The game is written in Common Lisp for the [Spring Lisp Game Jam 2020](https://itch.io/jam/spring-lisp-game-jam-2020). It uses [trivial-gamekit](https://borodust.org/projects/trivial-gamekit/) framework by Pavel Korolev (borodust). Thanks for the help from the #lispgames IRC channel.
+
+### Graphics
+The character sprites are emoji characters from [Noto Color Emoji](https://github.com/googlefonts/noto-emoji). I modified some a little with Gimp. Noto is a font family commissioned by Google, licensed under the SIL Open Font License.
 
 ### This game uses these sounds from freesound:
 * Winning by [rhodesmas](https://freesound.org/people/rhodesmas/sounds/320775/)
