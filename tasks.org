@@ -1,4 +1,6 @@
 #+TITLE: Such Is Life - Tasks
+#+TODO: TODO(t) | DONE(d)
+#+TODO: | CANCELED(c)
 
 * DONE Start base projects
 - use .asdf and package.lisp
@@ -68,14 +70,16 @@ CLOCK: [2020-04-17 Fri 15:14]--[2020-04-17 Fri 18:39] =>  3:25
 5. [X] how to run
 6. [X] how to play
 
+
 * TODO Replace tiles with proper art :art:
 * TODO Proper sound fx :art:
 
-* KILL CANCELED Smooth movement (reserved tiles?) :anims:
-* KILL Healing animation :anims:
-* KILL Get sick animation :anims:
-* KILL Attack animation :anims:
-* KILL Game goal monitor
+
+* CANCELED Smooth movement (reserved tiles?) :anims:
+* CANCELED Healing animation :anims:
+* CANCELED Get sick animation :anims:
+* CANCELED Attack animation :anims:
+* CANCELED Game goal monitor
 
 
 * Observation: disease is less successful with distancing. HA!
