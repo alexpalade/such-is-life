@@ -12,10 +12,10 @@
   ;; can disguise again after some time
   (when (and
          (not (disguised killer))
-         (> (time-since-last-kill killer) 2))
+         (> (time-since-last-kill killer) 5))
     (setf (disguised killer) t))
   (when (and
-         (< (random 100) 5)
+         (< (random 100) 2)
          (kill-cooldown-ok killer))
     (let ((persons (get-near-persons-not-of-type game killer 'police)))
       ;; also remove other killers from the list
@@ -26,14 +26,6 @@
         (do-kill game killer (first persons))))))
 
 (defmethod lose-disguise ((game sil-game) (killer killer))
-  (when (disguised killer)
-    (let ((chaser (get-closest-police game (row killer) (col killer))))
-      (when chaser
-        (setf (target chaser) killer)
-        (setf (state chaser) 'chasing)
-        (setf (rest-time chaser) 0)
-        (setf (destination chaser) (list (row killer) (col killer)))
-        (update-path-person game chaser))))
   (setf (disguised killer) nil))
 
 (defmethod time-since-last-kill ((this killer))

@@ -3,7 +3,7 @@
 (defclass police (person)
    ((gender :initform (nth (random 2) (list 'male 'female)) :accessor gender)))
 
-(defmethod tick :before ((game sil-game) (police police))
+(defmethod tick ((game sil-game) (police police))
   ;; lock near killers
   (dolist (killer (get-near-persons-of-type game police 'killer))
     (when (and (not (disguised killer))
@@ -11,6 +11,17 @@
       (setf (locked killer) t)
       (play :lock)))
 
+  ;; police is idle, chase someone
+  (when (state-p police 'wander)
+    (let ((killer (get-closest-killer game (row police) (col police))))
+      (if (and
+           killer
+           (not (disguised killer)))
+          (progn
+            (setf (target police) killer)
+            (format t "~& ~A ~%" killer)
+            (setf (state police) 'chasing))
+          (call-next-method))))
 
   ;; chase
   (when (and (state-p police 'chasing)
@@ -20,6 +31,7 @@
                 (disguised target)
                 (locked target)
                 (not (find target (persons game))))
+        (setf (target police) nil)
         (setf (state police) 'wander)
         (return-from tick))
       (when (or (null path)
@@ -32,7 +44,7 @@
              (to-col (second next-cell)))
         (if (and to-row to-col (cell-free-p game to-row to-col))
             (progn
-              (setf (rest-time police) 0.5)
+              (setf (rest-time police) 0.7)
               (move-person game police to-row to-col))
             (update-path-person game police))))))
 

@@ -326,7 +326,7 @@
   "Return seconds since certain point of time"
   (/ (get-internal-real-time) internal-time-units-per-second))
 
-(defmethod get-sick-person ((game sil-game) from-row from-col)
+(defmethod get-closest-sick-person ((game sil-game) from-row from-col)
   (let* ((closest-distance (* *rows* *cols*))
          (closest-sick nil))
     (dolist (p (persons game))
@@ -338,6 +338,19 @@
             (setf closest-distance distance)
             (setf closest-sick p)))))
     closest-sick))
+
+(defmethod get-closest-killer ((game sil-game) from-row from-col)
+  (let* ((closest-distance (* *rows* *cols*))
+         (closest-killer nil))
+    (dolist (k (get-all-persons-of-type game 'killer))
+      (when (and
+             (not (disguised k))
+             (not (locked k)))
+       (let ((distance (distance-between from-row from-col (row k) (col k))))
+          (when (< distance closest-distance)
+            (setf closest-distance distance)
+            (setf closest-killer k)))))
+    closest-killer))
 
 (defmethod quarantine-corners ((this sil-game))
   (when (and (quarantine-from this)

@@ -8,7 +8,7 @@
 (defmethod tick ((game sil-game) (medic medic))
   ;; medic is idle, take a patient
   (when (state-p medic 'wander)
-    (let ((sick-person (get-sick-person game (row medic) (col medic))))
+    (let ((sick-person (get-closest-sick-person game (row medic) (col medic))))
       (if (and
            sick-person
            (not (equal medic sick-person))
