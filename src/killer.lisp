@@ -12,7 +12,7 @@
   ;; can disguise again after some time
   (when (and
          (not (disguised killer))
-         (> (time-since-last-kill killer) 5))
+         (> (time-since-last-kill killer) 1))
     (setf (disguised killer) t))
   (when (and
          (< (random 100) 2)

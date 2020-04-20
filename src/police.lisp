@@ -19,7 +19,6 @@
            (not (disguised killer)))
           (progn
             (setf (target police) killer)
-            (format t "~& ~A ~%" killer)
             (setf (state police) 'chasing))
           (call-next-method))))
 
@@ -44,7 +43,7 @@
              (to-col (second next-cell)))
         (if (and to-row to-col (cell-free-p game to-row to-col))
             (progn
-              (setf (rest-time police) 0.7)
+              (setf (rest-time police) 0.8)
               (move-person game police to-row to-col))
             (update-path-person game police))))))
 
