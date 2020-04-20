@@ -1,0 +1,92 @@
+#+TITLE: Such Is Life - Tasks
+
+* DONE Start base projects
+- use .asdf and package.lisp
+* DONE Sync with github
+* DONE Travis CI to build for Linux and Mac
+* DONE Appveyor to build for Windows
+:LOGBOOK:
+CLOCK: [2020-04-12 Sun 20:27]--[2020-04-12 Sun 21:12] =>  0:45
+:END:
+
+* DONE Create project on itch.io
+- [[https://itch.io/dashboard]]
+* DONE Create grid
+* DONE Put actors on grid (x,y)
+* DONE People move on grid
+* DONE Basic click / interaction
+* DONE Random spawn
+* DONE Basic assets
+- [X] Scale images
+* DONE Fix crash for: no place left to spawn
+* DONE Make placeholder assets in gimp (emojis)
+* DONE Push and check releases
+* DONE Basic tile sprite
+- [-] tiles around as well
+* DONE Improve release archive name (society-is-hard-...zip)
+* DONE Basic behavior for attacker
+- [X] look around function
+- [X] kill someone
+* DONE Add sick people
+* DONE A* Pathfinding
+:PROPERTIES:
+:Effort:   0:45
+:END:
+:LOGBOOK:
+CLOCK: [2020-04-17 Fri 15:14]--[2020-04-17 Fri 18:39] =>  3:25
+:END:
+
+* DONE Draw quarantine :ux:
+- not sure how... left click and drag?
+* DONE Hospital and Police station tiles
+* DONE Refactor behavior to each class
+* DONE Rename all to "Such Is Life" and "such-is-life"
+* DONE Create stats & actions sidebar: :ux:
+- [X] tally: alive, dead
+- [X] restart button
+- [-] timer
+- [X] "everyone healed" message
+- [X] "no more killers"
+* DONE Quarantine [2/3]
+- [X] fix outside select
+- [-] multiple quarantines
+- [X] check if works properly
+
+* DONE Final mouse actions
+* DONE Better killers
+* DONE Implement police
+* DONE Remove *once*
+* DONE Show OK sign on stats
+* DONE Better defaults
+* DONE Rename github project
+* DONE Write github description
+* DONE itch.io page [6/6]
+1. [X] release builds
+2. [X] github link
+3. [X] screenshot
+4. [X] name: Such Is Life
+5. [X] how to run
+6. [X] how to play
+
+* TODO Replace tiles with proper art :art:
+* TODO Proper sound fx :art:
+
+* KILL CANCELED Smooth movement (reserved tiles?) :anims:
+* KILL Healing animation :anims:
+* KILL Get sick animation :anims:
+* KILL Attack animation :anims:
+* KILL Game goal monitor
+
+
+* Observation: disease is less successful with distancing. HA!
+* "There is no immunity."
+* "If criminals aren't caught, they'll eventually kill everyone."
+* Deadlines
+- sunday morning: all... :D
+- monday: just testing and deploying PLEASE!
+* Ideas
+- medic goes to nearest sick person
+- medic goes back and forth to hospital
+- police goes near the quarantine
+- police "captures" killer (1 square) and takes to police station
+- killer takes out knife before attack (can be caught)
