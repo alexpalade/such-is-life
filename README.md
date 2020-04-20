@@ -46,6 +46,8 @@ Hints:
 
 The game is written in Common Lisp for the [Spring Lisp Game Jam 2020](https://itch.io/jam/spring-lisp-game-jam-2020). It uses [trivial-gamekit](https://borodust.org/projects/trivial-gamekit/) framework by Pavel Korolev (borodust). Thanks for the help from the #lispgames IRC channel.
 
+The character sprites are emoji characters from [Noto Color Emoji](https://github.com/googlefonts/noto-emoji). Noto is a font family commissioned by Google, licensed under the SIL Open Font License. I modified some slightly with Gimp.
+
 ### This game uses these sounds from freesound:
 * Winning by [rhodesmas](https://freesound.org/people/rhodesmas/sounds/320775/)
 * Healing by [PaulMorek](https://freesound.org/people/PaulMorek/sounds/330047/)
