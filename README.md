@@ -16,7 +16,7 @@ Clone or link this repository into ~/quicklisp/local-projects/.
 (ql:update-all-dists)
 
 (ql:quickload :such-is-life)
-(decent-game:run)
+(sil-game:run)
 ```
 
 ## How to play
